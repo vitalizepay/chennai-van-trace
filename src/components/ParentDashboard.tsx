@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, MapPin, Clock, AlertTriangle, UserCheck, UserX, Bell, BellRing } from "lucide-react";
 import SOSButton from "@/components/SOSButton";
+import GoogleMap from "@/components/GoogleMap";
 import { toast } from "@/hooks/use-toast";
 
 interface ParentDashboardProps {
@@ -144,13 +145,7 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
             <CardTitle className="text-base">{t.liveTracking}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="bg-muted rounded-lg h-40 flex items-center justify-center">
-              <div className="text-center text-muted-foreground">
-                <MapPin className="h-8 w-8 mx-auto mb-2" />
-                <p className="text-sm">Interactive map will appear here</p>
-                <p className="text-xs">(Requires Google Maps integration)</p>
-              </div>
-            </div>
+            <GoogleMap height="h-40" />
           </CardContent>
         </Card>
 
