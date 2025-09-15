@@ -22,10 +22,33 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          light: "hsl(var(--primary-light))",
+          dark: "hsl(var(--primary-dark))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
+          light: "hsl(var(--secondary-light))",
+        },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+          light: "hsl(var(--success-light))",
+        },
+        emergency: {
+          DEFAULT: "hsl(var(--emergency))",
+          foreground: "hsl(var(--emergency-foreground))",
+          light: "hsl(var(--emergency-light))",
+        },
+        driver: {
+          DEFAULT: "hsl(var(--driver))",
+          foreground: "hsl(var(--driver-foreground))",
+          light: "hsl(var(--driver-light))",
+        },
+        admin: {
+          DEFAULT: "hsl(var(--admin))",
+          foreground: "hsl(var(--admin-foreground))",
+          light: "hsl(var(--admin-light))",
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
