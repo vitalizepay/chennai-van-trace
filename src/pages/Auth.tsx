@@ -13,6 +13,7 @@ import { Eye, EyeOff, Mail, Lock, User, Phone, MapPin, Calendar, Car } from "luc
 import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
+  console.log("Auth component loaded - Social login removed");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
@@ -139,7 +140,7 @@ const Auth = () => {
               <Car className="h-8 w-8 text-primary-foreground" />
             </div>
             <CardTitle className="text-2xl font-bold">School Van Tracker</CardTitle>
-            <p className="text-sm text-muted-foreground">Secure access to the tracking system</p>
+            <p className="text-sm text-muted-foreground">Secure access to the tracking system (v2.0 - No Social Login)</p>
           </CardHeader>
 
           <CardContent>
