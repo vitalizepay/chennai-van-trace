@@ -531,11 +531,44 @@ const UserManagement = ({ language }: UserManagementProps) => {
 
                           <TabsContent value="role" className="space-y-4">
                             <div>
-                              <label className="text-sm font-medium">Role</label>
-                              <div className="mt-1">
+                              <label className="text-sm font-medium">Current Role</label>
+                              <div className="mt-1 flex items-center gap-3">
                                 <Badge className={getRoleColor(selectedUser.role)}>
                                   {selectedUser.role || 'No role assigned'}
                                 </Badge>
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="text-sm font-medium">Assign Role</label>
+                              <div className="mt-2 flex gap-2">
+                                <Button 
+                                  size="sm" 
+                                  variant={selectedUser.role === 'admin' ? 'default' : 'outline'}
+                                  onClick={() => assignRole(selectedUser.user_id, 'admin')}
+                                  className="gap-1"
+                                >
+                                  <Shield className="h-3 w-3" />
+                                  Admin
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant={selectedUser.role === 'driver' ? 'default' : 'outline'}
+                                  onClick={() => assignRole(selectedUser.user_id, 'driver')}
+                                  className="gap-1"
+                                >
+                                  <Car className="h-3 w-3" />
+                                  Driver
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant={selectedUser.role === 'parent' ? 'default' : 'outline'}
+                                  onClick={() => assignRole(selectedUser.user_id, 'parent')}
+                                  className="gap-1"
+                                >
+                                  <Users className="h-3 w-3" />
+                                  Parent
+                                </Button>
                               </div>
                             </div>
 
