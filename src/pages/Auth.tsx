@@ -5,14 +5,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { Car, Users, Shield, Bus } from "lucide-react";
+import { Car, Users, Bus } from "lucide-react";
 import ParentMobileAuth from "@/components/auth/ParentMobileAuth";
 import DriverPasswordAuth from "@/components/auth/DriverPasswordAuth";
-import SuperAdminAuth from "@/components/auth/SuperAdminAuth";
-import SchoolAdminAuth from "@/components/auth/SchoolAdminAuth";
 
 const Auth = () => {
-  const [activeTab, setActiveTab] = useState<'parent' | 'driver' | 'school-admin'>('parent');
+  const [activeTab, setActiveTab] = useState<'parent' | 'driver'>('parent');
   const navigate = useNavigate();
 
   const handleAuthSuccess = () => {
@@ -33,7 +31,7 @@ const Auth = () => {
 
           <CardContent>
             <Tabs value={activeTab} onValueChange={(value: any) => setActiveTab(value)} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="parent" className="gap-1 text-xs">
                   <Users className="h-3 w-3" />
                   Parent
@@ -41,10 +39,6 @@ const Auth = () => {
                 <TabsTrigger value="driver" className="gap-1 text-xs">
                   <Bus className="h-3 w-3" />
                   Driver
-                </TabsTrigger>
-                <TabsTrigger value="school-admin" className="gap-1 text-xs">
-                  <Shield className="h-3 w-3" />
-                  School Admin
                 </TabsTrigger>
               </TabsList>
 
@@ -72,31 +66,27 @@ const Auth = () => {
                 <DriverPasswordAuth userType="driver" onSuccess={handleAuthSuccess} />
               </TabsContent>
 
-              <TabsContent value="school-admin" className="space-y-4">
-                <div className="text-center space-y-2 mb-6">
-                  <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                    <Shield className="h-3 w-3 mr-1" />
-                    School Admin
-                  </Badge>
-                  <p className="text-sm text-muted-foreground">
-                    Administrative access for school management
-                  </p>
-                </div>
-                <SchoolAdminAuth onSuccess={handleAuthSuccess} />
-              </TabsContent>
-
             </Tabs>
 
             {/* Footer Links */}
             <div className="mt-6 pt-4 border-t space-y-3">
-              <div className="text-center">
+              <div className="text-center space-y-2">
                 <button 
-                  className="text-primary hover:underline text-sm font-medium"
-                  onClick={() => navigate('/admin-portal')}
+                  className="text-primary hover:underline text-xs"
+                  onClick={() => navigate('/school-admin')}
                   type="button"
                 >
-                  Admin Portal →
+                  Admin Login
                 </button>
+                <div>
+                  <button 
+                    className="text-primary hover:underline text-sm font-medium"
+                    onClick={() => navigate('/admin-portal')}
+                    type="button"
+                  >
+                    Admin Portal →
+                  </button>
+                </div>
               </div>
               <p className="text-center text-xs text-muted-foreground">
                 By continuing, you agree to our{" "}
