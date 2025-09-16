@@ -13,6 +13,8 @@ const Auth = () => {
   const [activeTab, setActiveTab] = useState<'parent' | 'driver'>('parent');
   const navigate = useNavigate();
 
+  console.log('Auth component rendered, activeTab:', activeTab);
+
   const handleAuthSuccess = () => {
     navigate("/");
   };
