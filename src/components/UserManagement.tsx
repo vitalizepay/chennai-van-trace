@@ -150,36 +150,62 @@ const UserManagement = ({ language }: UserManagementProps) => {
     try {
       setLoading(true);
       
-      // Fetch users with their profiles, roles, and additional details
+      // First fetch all profiles
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          user_id,
-          email,
-          full_name,
-          phone,
-          status,
-          created_at,
-          user_roles(role),
-          parent_details(*),
-          driver_details(*),
-          user_activity_logs(action, created_at, details)
-        `);
+        .select('user_id, email, full_name, phone, status, created_at');
 
       if (profilesError) throw profilesError;
 
-      const formattedUsers = profilesData?.map((profile: any) => ({
-        user_id: profile.user_id,
-        email: profile.email,
-        full_name: profile.full_name,
-        phone: profile.phone,
-        status: profile.status,
-        created_at: profile.created_at,
-        role: profile.user_roles?.[0]?.role || null,
-        parent_details: profile.parent_details?.[0] || null,
-        driver_details: profile.driver_details?.[0] || null,
-        activity_logs: profile.user_activity_logs || []
-      })) || [];
+      // Then fetch roles for all users
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+
+      if (rolesError) throw rolesError;
+
+      // Fetch parent details
+      const { data: parentData, error: parentError } = await supabase
+        .from('parent_details')
+        .select('*');
+
+      if (parentError) throw parentError;
+
+      // Fetch driver details
+      const { data: driverData, error: driverError } = await supabase
+        .from('driver_details')
+        .select('*');
+
+      if (driverError) throw driverError;
+
+      // Fetch activity logs
+      const { data: activityData, error: activityError } = await supabase
+        .from('user_activity_logs')
+        .select('user_id, action, created_at, details')
+        .order('created_at', { ascending: false });
+
+      if (activityError) throw activityError;
+
+      // Combine all data
+      const formattedUsers = profilesData?.map((profile: any) => {
+        const userRoles = rolesData?.filter(role => role.user_id === profile.user_id) || [];
+        const parentDetails = parentData?.find(parent => parent.user_id === profile.user_id) || null;
+        const driverDetails = driverData?.find(driver => driver.user_id === profile.user_id) || null;
+        const activityLogs = activityData?.filter(log => log.user_id === profile.user_id) || [];
+
+        return {
+          user_id: profile.user_id,
+          email: profile.email,
+          full_name: profile.full_name,
+          phone: profile.phone,
+          status: profile.status,
+          created_at: profile.created_at,
+          role: userRoles[0]?.role || null,
+          parent_details: parentDetails,
+          driver_details: driverDetails,
+          activity_logs: activityLogs
+        };
+      }) || [];
 
       setUsers(formattedUsers);
     } catch (error) {
