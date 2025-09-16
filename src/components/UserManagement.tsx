@@ -32,7 +32,7 @@ interface User {
   user_id: string;
   email: string;
   full_name: string;
-  phone: string;
+  mobile: string;
   status: 'pending' | 'approved' | 'rejected' | 'suspended';
   created_at: string;
   role: string | null;
@@ -64,7 +64,8 @@ const UserManagement = ({ language }: UserManagementProps) => {
     // Parent specific fields
     childrenCount: '1',
     address: '',
-    emergencyContact: ''
+    emergencyContact: '',
+    mobile: ''
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -171,7 +172,7 @@ const UserManagement = ({ language }: UserManagementProps) => {
       // First fetch all profiles
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('user_id, email, full_name, phone, status, created_at');
+        .select('user_id, email, full_name, mobile, status, created_at');
 
       if (profilesError) throw profilesError;
 
@@ -215,7 +216,7 @@ const UserManagement = ({ language }: UserManagementProps) => {
           user_id: profile.user_id,
           email: profile.email,
           full_name: profile.full_name,
-          phone: profile.phone,
+          mobile: profile.mobile,
           status: profile.status,
           created_at: profile.created_at,
           role: userRoles[0]?.role || null,
@@ -245,7 +246,7 @@ const UserManagement = ({ language }: UserManagementProps) => {
       filtered = filtered.filter(user => 
         user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.phone?.includes(searchTerm)
+        user.mobile?.includes(searchTerm)
       );
     }
 
@@ -384,7 +385,8 @@ const UserManagement = ({ language }: UserManagementProps) => {
         routeAssigned: '',
         childrenCount: '1',
         address: '',
-        emergencyContact: ''
+        emergencyContact: '',
+        mobile: ''
       });
 
       setShowCreateDialog(false);
@@ -540,10 +542,10 @@ const UserManagement = ({ language }: UserManagementProps) => {
                       <Mail className="h-3 w-3" />
                       {user.email}
                     </div>
-                    {user.phone && (
+                    {user.mobile && (
                       <div className="flex items-center gap-1">
                         <Phone className="h-3 w-3" />
-                        {user.phone}
+                        {user.mobile}
                       </div>
                     )}
                     <div className="flex items-center gap-1">
@@ -644,7 +646,7 @@ const UserManagement = ({ language }: UserManagementProps) => {
                               </div>
                               <div>
                                 <label className="text-sm font-medium">{t.phone}</label>
-                                <p className="text-sm text-muted-foreground">{selectedUser.phone || 'Not provided'}</p>
+                                <p className="text-sm text-muted-foreground">{selectedUser.mobile || 'Not provided'}</p>
                               </div>
                               <div>
                                 <label className="text-sm font-medium">Status</label>
@@ -843,12 +845,12 @@ const UserManagement = ({ language }: UserManagementProps) => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Phone</label>
-                  <Input
-                    value={newUser.phone}
-                    onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
-                    placeholder="+1234567890"
-                  />
+                  <label className="text-sm font-medium">Mobile Number</label>
+            <Input
+              value={newUser.phone}
+              onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
+              placeholder="+919876543210"
+            />
                 </div>
                 
                 <div className="space-y-2">
