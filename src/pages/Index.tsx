@@ -32,7 +32,6 @@ const Index = () => {
       email: "Email",
       password: "Password",
       login: "Login",
-      demoLogin: "Continue as Demo",
       poweredBy: "Powered by Vitalizepay"
     },
     ta: {
@@ -47,7 +46,6 @@ const Index = () => {
       email: "மின்னஞ்சல்",
       password: "கடவுச்சொல்",
       login: "உள்நுழைய",
-      demoLogin: "டெமோவாக தொடரவும்",
       poweredBy: "Vitalizepay ஆல் இயக்கப்படுகிறது"
     }
   };
@@ -282,14 +280,6 @@ const RoleCard = ({ role, title, description, icon, color, onLogin, texts }: Rol
               Forgot Username?
             </button>
           </div>
-
-          <Button 
-            variant="ghost" 
-            className="w-full text-primary font-semibold hover:bg-primary/10" 
-            onClick={() => onLogin(role)}
-          >
-            {texts.demoLogin}
-          </Button>
 
           <button 
             className="text-red-500 font-semibold text-sm w-full"
