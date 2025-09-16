@@ -70,7 +70,7 @@ const Auth = () => {
 
             {/* Footer Links */}
             <div className="mt-6 pt-4 border-t space-y-3">
-              <div className="text-center space-y-2">
+              <div className="text-center">
                 <button 
                   className="text-primary hover:underline text-xs"
                   onClick={() => navigate('/school-admin')}
@@ -78,15 +78,6 @@ const Auth = () => {
                 >
                   Admin Login
                 </button>
-                <div>
-                  <button 
-                    className="text-primary hover:underline text-sm font-medium"
-                    onClick={() => navigate('/admin-portal')}
-                    type="button"
-                  >
-                    Admin Portal →
-                  </button>
-                </div>
               </div>
               <p className="text-center text-xs text-muted-foreground">
                 By continuing, you agree to our{" "}
