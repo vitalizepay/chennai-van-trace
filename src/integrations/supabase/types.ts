@@ -242,9 +242,24 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      create_admin_user: {
+        Args: { _email: string; _full_name: string; _mobile: string }
+        Returns: string
+      }
       generate_otp: {
         Args: { _mobile: string; _purpose?: string }
         Returns: string
+      }
+      get_user_by_mobile: {
+        Args: { _mobile: string }
+        Returns: {
+          email: string
+          full_name: string
+          mobile: string
+          roles: string[]
+          status: Database["public"]["Enums"]["user_status"]
+          user_id: string
+        }[]
       }
       get_user_status: {
         Args: { _user_id: string }
