@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bus, Users, Shield, MapPin, Bell, Languages } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import ParentDashboard from "@/components/ParentDashboard";
 import DriverDashboard from "@/components/DriverDashboard";
 import AdminDashboard from "@/components/AdminDashboard";
@@ -14,10 +15,50 @@ type UserRole = "parent" | "driver" | "admin" | null;
 const Index = () => {
   const [currentRole, setCurrentRole] = useState<UserRole>(null);
   const [language, setLanguage] = useState<"en" | "ta">("en");
+  const { user, loading, userRole } = useAuth();
 
   const toggleLanguage = () => {
     setLanguage(language === "en" ? "ta" : "en");
   };
+
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 bg-primary rounded-full mx-auto flex items-center justify-center animate-pulse">
+            <Bus className="h-8 w-8 text-primary-foreground" />
+          </div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is authenticated, show appropriate dashboard based on their role
+  if (user && userRole) {
+    return (
+      <div className="min-h-screen bg-background">
+        {userRole === "parent" && <ParentDashboard language={language} onBack={() => setCurrentRole(null)} />}
+        {userRole === "driver" && <DriverDashboard language={language} onBack={() => setCurrentRole(null)} />}
+        {userRole === "admin" && <AdminDashboard language={language} onBack={() => setCurrentRole(null)} />}
+      </div>
+    );
+  }
+
+  // If user is authenticated but no role determined, show role selection
+  if (user && !userRole) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 bg-primary rounded-full mx-auto flex items-center justify-center">
+            <Shield className="h-8 w-8 text-primary-foreground" />
+          </div>
+          <p className="text-muted-foreground">Setting up your account...</p>
+        </div>
+      </div>
+    );
+  }
 
   const texts = {
     en: {
@@ -52,6 +93,7 @@ const Index = () => {
 
   const t = texts[language];
 
+  // Show login interface only if user is not authenticated
   if (currentRole) {
     return (
       <div className="min-h-screen bg-background">
