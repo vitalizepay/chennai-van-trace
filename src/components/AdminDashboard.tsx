@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import GoogleMap from "./GoogleMap";
 
 interface AdminDashboardProps {
   language: "en" | "ta";
@@ -211,13 +212,17 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
                   <Bell className="h-4 w-4" />
                   {t.sendNotification}
                 </Button>
-                <div className="bg-muted rounded-lg h-32 flex items-center justify-center">
-                  <div className="text-center text-muted-foreground">
-                    <MapPin className="h-8 w-8 mx-auto mb-2" />
-                    <p className="text-sm">Live Van Tracking Map</p>
-                    <p className="text-xs">(All active vans)</p>
-                  </div>
-                </div>
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      Live Van Tracking Map
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <GoogleMap height="h-48" className="rounded-lg" />
+                  </CardContent>
+                </Card>
               </CardContent>
             </Card>
           </TabsContent>
