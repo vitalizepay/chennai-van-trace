@@ -170,17 +170,14 @@ const Index = () => {
           <div className="text-center space-y-2">
             <p className="text-white/70 text-xs">{t.poweredBy}</p>
             <div className="flex justify-center items-center gap-1">
-              <div className="w-6 h-6 bg-red-500 rounded flex items-center justify-center">
-                <span className="text-white text-xs font-bold">M</span>
-              </div>
-              <div className="w-6 h-6 bg-yellow-500 rounded flex items-center justify-center">
-                <span className="text-white text-xs font-bold">C</span>
+              <div className="w-6 h-6 bg-purple-600 rounded flex items-center justify-center">
+                <span className="text-white text-xs font-bold">V</span>
               </div>
               <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center">
-                <span className="text-white text-xs font-bold">B</span>
+                <span className="text-white text-xs font-bold">P</span>
               </div>
             </div>
-            <p className="text-white/60 text-xs font-semibold">MY CLASSBOARD</p>
+            <p className="text-white/60 text-xs font-semibold">VITALIZEPAY</p>
           </div>
         </div>
       </div>
