@@ -174,7 +174,7 @@ const PrivacyPolicy = () => {
           </Button>
           <div>
             <h1 className="text-lg font-semibold">Privacy Policy</h1>
-            <p className="text-xs text-muted-foreground">School Van Tracker - Tamil Nadu</p>
+            <p className="text-xs text-muted-foreground">School Van Tracker</p>
           </div>
         </div>
       </header>
@@ -263,8 +263,8 @@ const PrivacyPolicy = () => {
                     <strong>Phone:</strong> 1800-XXX-XXXX (Toll-free)
                   </p>
                   <p className="text-sm">
-                    <strong>Address:</strong> Tamil Nadu Department of Education<br />
-                    Fort St. George, Chennai - 600009
+                    <strong>Address:</strong> Department of Education<br />
+                    Government Office Complex
                   </p>
                 </div>
               </CardContent>

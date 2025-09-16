@@ -22,7 +22,7 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
     en: {
       title: "Parent Dashboard",
       childName: "Aarav Kumar",
-      vanNumber: "TN 07 AB 1234",
+      vanNumber: "VAN-001",
       currentStatus: "Current Status",
       estimatedArrival: "Estimated Arrival",
       liveTracking: "Live Van Tracking",
@@ -37,7 +37,7 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
     ta: {
       title: "பெற்றோர் டாஷ்போர்டு",
       childName: "ஆரவ் குமார்",
-      vanNumber: "TN 07 AB 1234",
+      vanNumber: "VAN-001",
       currentStatus: "தற்போதைய நிலை",
       estimatedArrival: "வருகை நேரம்",
       liveTracking: "நேரடி வேன் கண்காணிப்பு",

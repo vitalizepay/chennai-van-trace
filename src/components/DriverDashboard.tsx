@@ -33,7 +33,7 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
     en: {
       title: "Driver Dashboard",
       driverName: "Raj Kumar",
-      vanNumber: "TN 07 AB 1234",
+      vanNumber: "VAN-001",
       startTrip: "Start Trip",
       stopTrip: "Stop Trip",
       tripStatus: "Trip Status",
@@ -49,7 +49,7 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
     ta: {
       title: "ஓட்டுநர் டாஷ்போர்டு",
       driverName: "ராஜ் குமார்",
-      vanNumber: "TN 07 AB 1234",
+      vanNumber: "VAN-001",
       startTrip: "பயணம் தொடங்கு",
       stopTrip: "பயணம் நிறுத்து",
       tripStatus: "பயண நிலை",

@@ -32,16 +32,16 @@ interface Alert {
 
 const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
   const [vans] = useState<Van[]>([
-    { id: "1", number: "TN 07 AB 1234", driver: "Raj Kumar", status: "active", students: 24, route: "Route A" },
-    { id: "2", number: "TN 07 CD 5678", driver: "Priya Singh", status: "active", students: 18, route: "Route B" },
-    { id: "3", number: "TN 07 EF 9012", driver: "Kumar Das", status: "inactive", students: 0, route: "Route C" },
-    { id: "4", number: "TN 07 GH 3456", driver: "Meera Patel", status: "maintenance", students: 0, route: "Route D" },
+    { id: "1", number: "VAN-001", driver: "Raj Kumar", status: "active", students: 24, route: "Route A" },
+    { id: "2", number: "VAN-002", driver: "Priya Singh", status: "active", students: 18, route: "Route B" },
+    { id: "3", number: "VAN-003", driver: "Kumar Das", status: "inactive", students: 0, route: "Route C" },
+    { id: "4", number: "VAN-004", driver: "Meera Patel", status: "maintenance", students: 0, route: "Route D" },
   ]);
 
   const [alerts] = useState<Alert[]>([
-    { id: "1", type: "sos", message: "SOS alert from TN 07 AB 1234", time: "2 mins ago", van: "TN 07 AB 1234" },
-    { id: "2", type: "delay", message: "Route B running 15 minutes late", time: "8 mins ago", van: "TN 07 CD 5678" },
-    { id: "3", type: "maintenance", message: "Scheduled maintenance due", time: "1 hour ago", van: "TN 07 GH 3456" },
+    { id: "1", type: "sos", message: "SOS alert from VAN-001", time: "2 mins ago", van: "VAN-001" },
+    { id: "2", type: "delay", message: "Route B running 15 minutes late", time: "8 mins ago", van: "VAN-002" },
+    { id: "3", type: "maintenance", message: "Scheduled maintenance due", time: "1 hour ago", van: "VAN-004" },
   ]);
 
   const texts = {
@@ -138,7 +138,7 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
         </Button>
         <div className="flex-1">
           <h1 className="text-lg font-semibold">{t.title}</h1>
-          <p className="text-sm opacity-90">Tamil Nadu School System</p>
+          <p className="text-sm opacity-90">School Management System</p>
         </div>
         <Button variant="ghost" size="sm" className="text-admin-foreground">
           <Settings className="h-4 w-4" />

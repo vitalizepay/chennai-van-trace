@@ -47,7 +47,7 @@ const GoogleMap = ({ height = "h-40", className = "" }: GoogleMapProps) => {
       await loader.load();
 
       const mapInstance = new google.maps.Map(mapRef.current, {
-        center: { lat: 11.0168, lng: 76.9558 }, // Coimbatore, Tamil Nadu
+        center: { lat: 11.0168, lng: 76.9558 }, // Default location
         zoom: 12,
         styles: [
           {

@@ -22,7 +22,7 @@ const Index = () => {
   const texts = {
     en: {
       title: "School Van Tracker",
-      subtitle: "Safe, Smart School Transportation for Tamil Nadu",
+      subtitle: "Safe, Smart School Transportation",
       parent: "Parent",
       driver: "Driver", 
       admin: "Admin",
@@ -33,11 +33,11 @@ const Index = () => {
       password: "Password",
       login: "Login",
       demoLogin: "Continue as Demo",
-      poweredBy: "Powered by Tamil Nadu Schools"
+      poweredBy: "Powered by Education Department"
     },
     ta: {
       title: "பள்ளி வேன் டிராக்கர்",
-      subtitle: "தமிழ்நாடு பள்ளிகளுக்கு பாதுகாப்பான, ஸ்மார்ட் போக்குவரத்து",
+      subtitle: "பள்ளிகளுக்கு பாதுகாப்பான, ஸ்மார்ட் போக்குவரத்து",
       parent: "பெற்றோர்",
       driver: "ஓட்டுநர்",
       admin: "நிர்வாகி",
