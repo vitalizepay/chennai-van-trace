@@ -53,11 +53,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       setUserProfile(profile);
 
-      // Fetch user role
+      // Fetch user role (get the first role if multiple exist)
       const { data: roleData } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
+        .order('assigned_at', { ascending: true })
+        .limit(1)
         .single();
 
       setUserRole(roleData?.role || null);
