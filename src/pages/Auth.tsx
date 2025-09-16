@@ -9,9 +9,10 @@ import { Car, Users, Shield, Bus } from "lucide-react";
 import ParentMobileAuth from "@/components/auth/ParentMobileAuth";
 import DriverPasswordAuth from "@/components/auth/DriverPasswordAuth";
 import SuperAdminAuth from "@/components/auth/SuperAdminAuth";
+import SchoolAdminAuth from "@/components/auth/SchoolAdminAuth";
 
 const Auth = () => {
-  const [activeTab, setActiveTab] = useState<'parent' | 'driver' | 'admin'>('parent');
+  const [activeTab, setActiveTab] = useState<'parent' | 'driver' | 'school-admin' | 'super-admin'>('parent');
   const navigate = useNavigate();
 
   const handleAuthSuccess = () => {
@@ -32,18 +33,22 @@ const Auth = () => {
 
           <CardContent>
             <Tabs value={activeTab} onValueChange={(value: any) => setActiveTab(value)} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="parent" className="gap-2">
-                  <Users className="h-4 w-4" />
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="parent" className="gap-1 text-xs">
+                  <Users className="h-3 w-3" />
                   Parent
                 </TabsTrigger>
-                <TabsTrigger value="driver" className="gap-2">
-                  <Bus className="h-4 w-4" />
+                <TabsTrigger value="driver" className="gap-1 text-xs">
+                  <Bus className="h-3 w-3" />
                   Driver
                 </TabsTrigger>
-                <TabsTrigger value="admin" className="gap-2">
-                  <Shield className="h-4 w-4" />
-                  Admin
+                <TabsTrigger value="school-admin" className="gap-1 text-xs">
+                  <Shield className="h-3 w-3" />
+                  School Admin
+                </TabsTrigger>
+                <TabsTrigger value="super-admin" className="gap-1 text-xs">
+                  <Shield className="h-3 w-3" />
+                  Super Admin
                 </TabsTrigger>
               </TabsList>
 
@@ -71,7 +76,20 @@ const Auth = () => {
                 <DriverPasswordAuth userType="driver" onSuccess={handleAuthSuccess} />
               </TabsContent>
 
-              <TabsContent value="admin" className="space-y-4">
+              <TabsContent value="school-admin" className="space-y-4">
+                <div className="text-center space-y-2 mb-6">
+                  <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                    <Shield className="h-3 w-3 mr-1" />
+                    School Admin
+                  </Badge>
+                  <p className="text-sm text-muted-foreground">
+                    Administrative access for school management
+                  </p>
+                </div>
+                <SchoolAdminAuth onSuccess={handleAuthSuccess} />
+              </TabsContent>
+
+              <TabsContent value="super-admin" className="space-y-4">
                 <div className="text-center space-y-2 mb-6">
                   <Badge variant="secondary" className="text-xs bg-red-50 text-red-700 border-red-200">
                     <Shield className="h-3 w-3 mr-1" />
