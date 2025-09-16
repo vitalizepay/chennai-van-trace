@@ -11,6 +11,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
+  signInWithMicrosoft: () => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (data: any) => Promise<{ error: any }>;
 }
@@ -139,6 +140,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return { error };
   };
 
+  const signInWithMicrosoft = async () => {
+    const redirectUrl = `${window.location.origin}/`;
+    
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'azure',
+      options: {
+        redirectTo: redirectUrl,
+        scopes: 'email'
+      }
+    });
+    return { error };
+  };
+
   const signOut = async () => {
     if (user) {
       await supabase.from('user_activity_logs').insert({
@@ -179,6 +193,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signIn,
     signUp,
     signInWithGoogle,
+    signInWithMicrosoft,
     signOut,
     updateProfile
   };
