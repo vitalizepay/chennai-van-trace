@@ -100,9 +100,6 @@ const Index = () => {
               <h1 className="text-2xl font-bold text-white text-center leading-tight">
                 {t.title.toUpperCase()}
               </h1>
-              <p className="text-white/90 text-sm font-medium text-center">
-                {language === "en" ? "CBSE Affiliated School" : "சி.பி.எஸ்.இ அங்கீகரிக்கப்பட்ட பள்ளி"}
-              </p>
             </div>
           </div>
 
