@@ -324,68 +324,20 @@ const UserManagement = ({ language }: UserManagementProps) => {
 
   const createUser = async () => {
     try {
-      // Create user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: newUser.email,
-        password: newUser.password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: newUser.fullName
+      // Get current user for created_by field
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
+      // Call edge function to create user with admin privileges
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          userData: {
+            ...newUser,
+            createdBy: currentUser?.id
+          }
         }
       });
 
-      if (authError) throw authError;
-
-      if (!authData.user) throw new Error('Failed to create user');
-
-      // Update the profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          full_name: newUser.fullName,
-          phone: newUser.phone,
-          status: 'approved'
-        })
-        .eq('user_id', authData.user.id);
-
-      if (profileError) throw profileError;
-
-      // Assign role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: authData.user.id,
-          role: newUser.role,
-          assigned_by: (await supabase.auth.getUser()).data.user?.id
-        });
-
-      if (roleError) throw roleError;
-
-      // Add role-specific details
-      if (newUser.role === 'driver') {
-        const { error: driverError } = await supabase
-          .from('driver_details')
-          .insert({
-            user_id: authData.user.id,
-            license_number: newUser.licenseNumber,
-            experience_years: newUser.experienceYears ? parseInt(newUser.experienceYears) : null,
-            van_assigned: newUser.vanAssigned || null,
-            route_assigned: newUser.routeAssigned || null
-          });
-
-        if (driverError) throw driverError;
-      } else if (newUser.role === 'parent') {
-        const { error: parentError } = await supabase
-          .from('parent_details')
-          .insert({
-            user_id: authData.user.id,
-            children_count: parseInt(newUser.childrenCount),
-            address: newUser.address || null,
-            emergency_contact: newUser.emergencyContact || null
-          });
-
-        if (parentError) throw parentError;
-      }
+      if (error) throw error;
 
       // Reset form
       setNewUser({
