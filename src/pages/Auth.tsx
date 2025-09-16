@@ -26,7 +26,7 @@ const Auth = () => {
               <Car className="h-8 w-8 text-primary-foreground" />
             </div>
             <CardTitle className="text-2xl font-bold">School Van Tracker</CardTitle>
-            <p className="text-sm text-muted-foreground">Choose your login method</p>
+            <p className="text-sm text-muted-foreground">Select your login type</p>
           </CardHeader>
 
           <CardContent>
