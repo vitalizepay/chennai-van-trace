@@ -4,26 +4,35 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Mail, User, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Phone, Loader2 } from "lucide-react";
 
-interface ParentEmailAuthProps {
+interface ParentMobileAuthProps {
   onSuccess: () => void;
 }
 
-const ParentEmailAuth = ({ onSuccess }: ParentEmailAuthProps) => {
-  const [username, setUsername] = useState('');
+const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
+  const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signInWithMobilePassword } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username || !password) {
+    if (!mobile || !password) {
       toast({
         title: "Missing Information",
-        description: "Please enter both username and password",
+        description: "Please enter both mobile number and password",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!/^[6-9]\d{9}$/.test(mobile)) {
+      toast({
+        title: "Invalid Mobile Number",
+        description: "Please enter a valid 10-digit mobile number",
         variant: "destructive",
       });
       return;
@@ -31,15 +40,11 @@ const ParentEmailAuth = ({ onSuccess }: ParentEmailAuthProps) => {
 
     setLoading(true);
     try {
-      // Check if username looks like an email (contains @)
-      const isEmail = username.includes('@');
-      const loginEmail = isEmail ? username : `${username}@parent.local`;
-      
-      const { error } = await signIn(loginEmail, password);
+      const { error } = await signInWithMobilePassword(mobile, password);
       if (error) {
         toast({
           title: "Login Failed",
-          description: error.message || "Invalid username or password",
+          description: error.message || "Invalid mobile number or password",
           variant: "destructive",
         });
       } else {
@@ -70,18 +75,19 @@ const ParentEmailAuth = ({ onSuccess }: ParentEmailAuthProps) => {
   return (
     <div className="space-y-4">
       <form onSubmit={handleLogin} className="space-y-4">
-        {/* Username Input */}
+        {/* Mobile Input */}
         <div className="space-y-2">
-          <Label htmlFor="username">Username</Label>
+          <Label htmlFor="mobile">Mobile Number</Label>
           <div className="relative">
-            <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              id="username"
-              type="text"
-              placeholder="Enter email or username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              id="mobile"
+              type="tel"
+              placeholder="Enter 10-digit mobile number"
+              value={mobile}
+              onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
               className="pl-10"
+              maxLength={10}
               required
             />
           </div>
@@ -142,11 +148,11 @@ const ParentEmailAuth = ({ onSuccess }: ParentEmailAuthProps) => {
 
       {/* Help Text */}
       <div className="text-xs text-muted-foreground text-center mt-4 space-y-1">
-        <p>Enter your email address or username to login</p>
+        <p>Enter your mobile number and password to login</p>
         <p>Contact your school administrator if you need help accessing your account</p>
       </div>
     </div>
   );
 };
 
-export default ParentEmailAuth;
+export default ParentMobileAuth;

@@ -6,9 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { Car, Users, Shield, Bus } from "lucide-react";
-import ParentEmailAuth from "@/components/auth/ParentEmailAuth";
+import ParentMobileAuth from "@/components/auth/ParentMobileAuth";
 import DriverPasswordAuth from "@/components/auth/DriverPasswordAuth";
-import AdminAuth from "@/components/auth/AdminAuth";
+import SuperAdminAuth from "@/components/auth/SuperAdminAuth";
 
 const Auth = () => {
   const [activeTab, setActiveTab] = useState<'parent' | 'driver' | 'admin'>('parent');
@@ -50,13 +50,13 @@ const Auth = () => {
               <TabsContent value="parent" className="space-y-4">
                 <div className="text-center space-y-2 mb-6">
                   <Badge variant="secondary" className="text-xs">
-                    Email or Username Login
+                    Mobile + Password
                   </Badge>
                   <p className="text-sm text-muted-foreground">
-                    Secure login with email or username & password
+                    Secure login with mobile number & password
                   </p>
                 </div>
-                <ParentEmailAuth onSuccess={handleAuthSuccess} />
+                <ParentMobileAuth onSuccess={handleAuthSuccess} />
               </TabsContent>
 
               <TabsContent value="driver" className="space-y-4">
@@ -73,14 +73,15 @@ const Auth = () => {
 
               <TabsContent value="admin" className="space-y-4">
                 <div className="text-center space-y-2 mb-6">
-                  <Badge variant="secondary" className="text-xs">
-                    Email or Mobile + Password
+                  <Badge variant="secondary" className="text-xs bg-red-50 text-red-700 border-red-200">
+                    <Shield className="h-3 w-3 mr-1" />
+                    VitalizePay Super Admin + 2FA
                   </Badge>
                   <p className="text-sm text-muted-foreground">
-                    Administrative access with multiple login options
+                    Highest security access with mobile + password + TOTP
                   </p>
                 </div>
-                <AdminAuth onSuccess={handleAuthSuccess} />
+                <SuperAdminAuth onSuccess={handleAuthSuccess} />
               </TabsContent>
             </Tabs>
 
