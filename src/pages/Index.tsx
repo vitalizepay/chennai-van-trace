@@ -33,7 +33,7 @@ const Index = () => {
       password: "Password",
       login: "Login",
       demoLogin: "Continue as Demo",
-      poweredBy: "Powered by Education Department"
+      poweredBy: "Powered by Vitalizepay"
     },
     ta: {
       title: "பள்ளி வேன் டிராக்கர்",
@@ -48,7 +48,7 @@ const Index = () => {
       password: "கடவுச்சொல்",
       login: "உள்நுழைய",
       demoLogin: "டெமோவாக தொடரவும்",
-      poweredBy: "தமிழ்நாடு பள்ளிகளால் இயக்கப்படுகிறது"
+      poweredBy: "Vitalizepay ஆல் இயக்கப்படுகிறது"
     }
   };
 
