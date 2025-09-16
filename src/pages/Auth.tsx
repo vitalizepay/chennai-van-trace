@@ -30,43 +30,60 @@ const Auth = () => {
           </CardHeader>
 
           <CardContent>
-            <Tabs value={activeTab} onValueChange={(value: any) => setActiveTab(value)} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2 bg-muted">
-                <TabsTrigger value="parent" className="gap-1 text-xs">
+            <div className="space-y-4">
+              <div className="flex w-full bg-muted rounded-lg p-1">
+                <button
+                  onClick={() => setActiveTab('parent')}
+                  className={`flex-1 flex items-center justify-center gap-1 text-xs py-2 px-3 rounded-md transition-all ${
+                    activeTab === 'parent' 
+                      ? 'bg-background text-foreground shadow-sm' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
                   <Users className="h-3 w-3" />
                   Parent
-                </TabsTrigger>
-                <TabsTrigger value="driver" className="gap-1 text-xs">
+                </button>
+                <button
+                  onClick={() => setActiveTab('driver')}
+                  className={`flex-1 flex items-center justify-center gap-1 text-xs py-2 px-3 rounded-md transition-all ${
+                    activeTab === 'driver' 
+                      ? 'bg-background text-foreground shadow-sm' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
                   <Bus className="h-3 w-3" />
                   Driver
-                </TabsTrigger>
-              </TabsList>
+                </button>
+              </div>
 
-              <TabsContent value="parent" className="space-y-4">
-                <div className="text-center space-y-2 mb-6">
-                  <Badge variant="secondary" className="text-xs">
-                    Mobile + Password
-                  </Badge>
-                  <p className="text-sm text-muted-foreground">
-                    Secure login with mobile number & password
-                  </p>
+              {activeTab === 'parent' && (
+                <div className="space-y-4">
+                  <div className="text-center space-y-2 mb-6">
+                    <Badge variant="secondary" className="text-xs">
+                      Mobile + Password
+                    </Badge>
+                    <p className="text-sm text-muted-foreground">
+                      Secure login with mobile number & password
+                    </p>
+                  </div>
+                  <ParentMobileAuth onSuccess={handleAuthSuccess} />
                 </div>
-                <ParentMobileAuth onSuccess={handleAuthSuccess} />
-              </TabsContent>
+              )}
 
-              <TabsContent value="driver" className="space-y-4">
-                <div className="text-center space-y-2 mb-6">
-                  <Badge variant="secondary" className="text-xs">
-                    Mobile + Password
-                  </Badge>
-                  <p className="text-sm text-muted-foreground">
-                    Secure access for van drivers
-                  </p>
+              {activeTab === 'driver' && (
+                <div className="space-y-4">
+                  <div className="text-center space-y-2 mb-6">
+                    <Badge variant="secondary" className="text-xs">
+                      Mobile + Password
+                    </Badge>
+                    <p className="text-sm text-muted-foreground">
+                      Secure access for van drivers
+                    </p>
+                  </div>
+                  <DriverPasswordAuth userType="driver" onSuccess={handleAuthSuccess} />
                 </div>
-                <DriverPasswordAuth userType="driver" onSuccess={handleAuthSuccess} />
-              </TabsContent>
-
-            </Tabs>
+              )}
+            </div>
 
             {/* Footer Links */}
             <div className="mt-6 pt-4 border-t space-y-3">
