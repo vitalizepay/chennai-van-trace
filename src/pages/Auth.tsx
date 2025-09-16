@@ -12,7 +12,7 @@ import SuperAdminAuth from "@/components/auth/SuperAdminAuth";
 import SchoolAdminAuth from "@/components/auth/SchoolAdminAuth";
 
 const Auth = () => {
-  const [activeTab, setActiveTab] = useState<'parent' | 'driver' | 'school-admin' | 'super-admin'>('parent');
+  const [activeTab, setActiveTab] = useState<'parent' | 'driver' | 'school-admin'>('parent');
   const navigate = useNavigate();
 
   const handleAuthSuccess = () => {
@@ -33,7 +33,7 @@ const Auth = () => {
 
           <CardContent>
             <Tabs value={activeTab} onValueChange={(value: any) => setActiveTab(value)} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="parent" className="gap-1 text-xs">
                   <Users className="h-3 w-3" />
                   Parent
@@ -45,10 +45,6 @@ const Auth = () => {
                 <TabsTrigger value="school-admin" className="gap-1 text-xs">
                   <Shield className="h-3 w-3" />
                   School Admin
-                </TabsTrigger>
-                <TabsTrigger value="super-admin" className="gap-1 text-xs">
-                  <Shield className="h-3 w-3" />
-                  Super Admin
                 </TabsTrigger>
               </TabsList>
 
@@ -89,22 +85,19 @@ const Auth = () => {
                 <SchoolAdminAuth onSuccess={handleAuthSuccess} />
               </TabsContent>
 
-              <TabsContent value="super-admin" className="space-y-4">
-                <div className="text-center space-y-2 mb-6">
-                  <Badge variant="secondary" className="text-xs bg-red-50 text-red-700 border-red-200">
-                    <Shield className="h-3 w-3 mr-1" />
-                    VitalizePay Super Admin + 2FA
-                  </Badge>
-                  <p className="text-sm text-muted-foreground">
-                    Highest security access with mobile + password + TOTP
-                  </p>
-                </div>
-                <SuperAdminAuth onSuccess={handleAuthSuccess} />
-              </TabsContent>
             </Tabs>
 
             {/* Footer Links */}
-            <div className="mt-6 pt-4 border-t">
+            <div className="mt-6 pt-4 border-t space-y-3">
+              <div className="text-center">
+                <button 
+                  className="text-primary hover:underline text-sm font-medium"
+                  onClick={() => navigate('/admin-portal')}
+                  type="button"
+                >
+                  Admin Portal →
+                </button>
+              </div>
               <p className="text-center text-xs text-muted-foreground">
                 By continuing, you agree to our{" "}
                 <button 
