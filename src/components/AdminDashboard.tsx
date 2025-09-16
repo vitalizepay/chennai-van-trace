@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import GoogleMap from "./GoogleMap";
+import UserManagement from "./UserManagement";
 
 interface AdminDashboardProps {
   language: "en" | "ta";
@@ -146,7 +147,7 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
 
       <div className="p-4">
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview" className="gap-2">
               <BarChart3 className="h-4 w-4" />
               {t.overview}
@@ -154,6 +155,10 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
             <TabsTrigger value="vans" className="gap-2">
               <Bus className="h-4 w-4" />
               Vans
+            </TabsTrigger>
+            <TabsTrigger value="users" className="gap-2">
+              <UserCog className="h-4 w-4" />
+              Users
             </TabsTrigger>
             <TabsTrigger value="alerts" className="gap-2">
               <AlertTriangle className="h-4 w-4" />
@@ -252,6 +257,10 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
                 ))}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="users" className="space-y-4">
+            <UserManagement language={language} />
           </TabsContent>
 
           <TabsContent value="alerts" className="space-y-4">
