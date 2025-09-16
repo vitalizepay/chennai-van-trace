@@ -48,6 +48,23 @@ const UserManagement = ({ language }: UserManagementProps) => {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newUser, setNewUser] = useState({
+    email: '',
+    fullName: '',
+    phone: '',
+    password: '',
+    role: 'parent' as 'parent' | 'driver',
+    // Driver specific fields
+    licenseNumber: '',
+    experienceYears: '',
+    vanAssigned: '',
+    routeAssigned: '',
+    // Parent specific fields
+    childrenCount: '1',
+    address: '',
+    emergencyContact: ''
+  });
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -305,6 +322,105 @@ const UserManagement = ({ language }: UserManagementProps) => {
     }
   };
 
+  const createUser = async () => {
+    try {
+      // Create user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: newUser.email,
+        password: newUser.password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: newUser.fullName
+        }
+      });
+
+      if (authError) throw authError;
+
+      if (!authData.user) throw new Error('Failed to create user');
+
+      // Update the profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: newUser.fullName,
+          phone: newUser.phone,
+          status: 'approved'
+        })
+        .eq('user_id', authData.user.id);
+
+      if (profileError) throw profileError;
+
+      // Assign role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: authData.user.id,
+          role: newUser.role,
+          assigned_by: (await supabase.auth.getUser()).data.user?.id
+        });
+
+      if (roleError) throw roleError;
+
+      // Add role-specific details
+      if (newUser.role === 'driver') {
+        const { error: driverError } = await supabase
+          .from('driver_details')
+          .insert({
+            user_id: authData.user.id,
+            license_number: newUser.licenseNumber,
+            experience_years: newUser.experienceYears ? parseInt(newUser.experienceYears) : null,
+            van_assigned: newUser.vanAssigned || null,
+            route_assigned: newUser.routeAssigned || null
+          });
+
+        if (driverError) throw driverError;
+      } else if (newUser.role === 'parent') {
+        const { error: parentError } = await supabase
+          .from('parent_details')
+          .insert({
+            user_id: authData.user.id,
+            children_count: parseInt(newUser.childrenCount),
+            address: newUser.address || null,
+            emergency_contact: newUser.emergencyContact || null
+          });
+
+        if (parentError) throw parentError;
+      }
+
+      // Reset form
+      setNewUser({
+        email: '',
+        fullName: '',
+        phone: '',
+        password: '',
+        role: 'parent',
+        licenseNumber: '',
+        experienceYears: '',
+        vanAssigned: '',
+        routeAssigned: '',
+        childrenCount: '1',
+        address: '',
+        emergencyContact: ''
+      });
+
+      setShowCreateDialog(false);
+      await fetchUsers();
+
+      toast({
+        title: "User Created",
+        description: `${newUser.role} account created successfully`,
+      });
+
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create user",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'approved': return 'bg-success text-success-foreground';
@@ -400,10 +516,16 @@ const UserManagement = ({ language }: UserManagementProps) => {
       {/* User List */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            {t.userManagement}
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              {t.userManagement}
+            </CardTitle>
+            <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+              <Users className="h-4 w-4" />
+              Create User
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           {loading ? (
@@ -683,6 +805,177 @@ const UserManagement = ({ language }: UserManagementProps) => {
           )}
         </CardContent>
       </Card>
+
+      {/* Create User Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create New User</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Basic Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Basic Information</h3>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Email</label>
+                  <Input
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                    placeholder="user@example.com"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Full Name</label>
+                  <Input
+                    value={newUser.fullName}
+                    onChange={(e) => setNewUser({...newUser, fullName: e.target.value})}
+                    placeholder="John Doe"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Phone</label>
+                  <Input
+                    value={newUser.phone}
+                    onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
+                    placeholder="+1234567890"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Password</label>
+                  <Input
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                    placeholder="Minimum 6 characters"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Role</label>
+                <Select value={newUser.role} onValueChange={(value: 'parent' | 'driver') => setNewUser({...newUser, role: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="parent">Parent</SelectItem>
+                    <SelectItem value="driver">Driver</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Role-specific fields */}
+            {newUser.role === 'driver' && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Driver Details</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">License Number</label>
+                    <Input
+                      value={newUser.licenseNumber}
+                      onChange={(e) => setNewUser({...newUser, licenseNumber: e.target.value})}
+                      placeholder="DL123456789"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Experience (Years)</label>
+                    <Input
+                      type="number"
+                      value={newUser.experienceYears}
+                      onChange={(e) => setNewUser({...newUser, experienceYears: e.target.value})}
+                      placeholder="5"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Van Assigned</label>
+                    <Input
+                      value={newUser.vanAssigned}
+                      onChange={(e) => setNewUser({...newUser, vanAssigned: e.target.value})}
+                      placeholder="VAN001"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Route Assigned</label>
+                    <Input
+                      value={newUser.routeAssigned}
+                      onChange={(e) => setNewUser({...newUser, routeAssigned: e.target.value})}
+                      placeholder="Route A"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {newUser.role === 'parent' && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Parent Details</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Number of Children</label>
+                    <Input
+                      type="number"
+                      value={newUser.childrenCount}
+                      onChange={(e) => setNewUser({...newUser, childrenCount: e.target.value})}
+                      placeholder="1"
+                      min="1"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Emergency Contact</label>
+                    <Input
+                      value={newUser.emergencyContact}
+                      onChange={(e) => setNewUser({...newUser, emergencyContact: e.target.value})}
+                      placeholder="+1234567890"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Address</label>
+                  <Input
+                    value={newUser.address}
+                    onChange={(e) => setNewUser({...newUser, address: e.target.value})}
+                    placeholder="123 Main St, City, State"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowCreateDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={createUser}
+                disabled={!newUser.email || !newUser.fullName || !newUser.password}
+              >
+                Create User
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
