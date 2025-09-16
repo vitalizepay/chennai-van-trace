@@ -15,143 +15,123 @@ const PrivacyPolicy = () => {
         {
           subtitle: "Personal Information",
           items: [
-            "Full name and contact details (email, phone number)",
-            "Home address for pickup/drop-off locations",
-            "Emergency contact information",
-            "Driver license information (for drivers only)",
-            "Children's information (for parents only)"
+            "Students: Name, class/section, roll number, parent/guardian details",
+            "Parents/Guardians: Name, email, mobile number, relationship to student",
+            "Drivers: Name, license details, contact information, employment verification",
+            "Addresses: Home address, pickup/drop-off locations (for route planning only)",
+            "Emergency Contacts: Names and phone numbers"
           ]
         },
         {
-          subtitle: "Location Data",
+          subtitle: "Location and Tracking Data",
           items: [
-            "Real-time GPS location of school vans",
-            "Route information and stops",
-            "Pickup and drop-off locations",
-            "Historical location data for safety purposes"
+            "Real-time GPS location of vans during active trips",
+            "Route details (stops, distance, timing)",
+            "Geofence data for pickup/drop-off zones",
+            "Historical location data (kept up to 30 days)"
           ]
         },
         {
-          subtitle: "Usage Information",
+          subtitle: "Usage and Technical Data",
           items: [
-            "Login times and app usage patterns",
-            "Device information and IP address",
-            "Communication logs and notifications",
-            "Attendance records and travel history"
+            "Login and app usage logs",
+            "Device information (model, OS, version)",
+            "Network information (IP address)",
+            "Attendance records (boarding and drop-off status)"
           ]
         }
       ]
     },
     {
-      title: "How We Use Your Information",
+      title: "How We Use Information",
       icon: <Users className="h-5 w-5" />,
       content: [
         {
-          subtitle: "Safety and Security",
+          subtitle: "Service Features",
           items: [
-            "Real-time tracking to ensure child safety",
-            "Emergency response and SOS functionality",
-            "Route optimization and traffic management",
-            "Attendance monitoring and reporting"
-          ]
-        },
-        {
-          subtitle: "Communication",
-          items: [
-            "Notifications about van arrivals and delays",
-            "Emergency alerts and important announcements",
-            "Schedule changes and route updates",
-            "Parent-school communication facilitation"
-          ]
-        },
-        {
-          subtitle: "Service Improvement",
-          items: [
-            "Analyzing usage patterns to improve services",
-            "Optimizing routes for efficiency",
-            "Enhancing safety features and protocols",
-            "Technical support and troubleshooting"
+            "To provide live tracking of vans for parents and schools",
+            "To send alerts and notifications (arrival, delays, SOS)",
+            "To maintain attendance records",
+            "To improve safety and route efficiency",
+            "To provide technical support and resolve issues",
+            "To comply with school safety regulations"
           ]
         }
       ]
     },
     {
-      title: "Data Protection and Security",
+      title: "Data Sharing",
+      icon: <Users className="h-5 w-5" />,
+      content: [
+        {
+          subtitle: "We share information only when required",
+          items: [
+            "With parents/guardians – about their own child only",
+            "With school administrators – for safety and attendance",
+            "With emergency services – during SOS or incidents",
+            "With authorities – when legally required",
+            "We never sell personal data or use it for advertising"
+          ]
+        }
+      ]
+    },
+    {
+      title: "Data Security",
       icon: <Lock className="h-5 w-5" />,
       content: [
         {
-          subtitle: "Security Measures",
+          subtitle: "We use strong safeguards to protect data",
           items: [
-            "End-to-end encryption for all sensitive data",
-            "Secure cloud storage with regular backups",
-            "Multi-factor authentication for admin accounts",
-            "Regular security audits and vulnerability assessments"
-          ]
-        },
-        {
-          subtitle: "Access Controls",
-          items: [
-            "Role-based access (Parents, Drivers, Administrators)",
-            "Admin approval required for new user accounts",
-            "Regular review and update of user permissions",
-            "Automatic session timeouts for security"
-          ]
-        },
-        {
-          subtitle: "Data Retention",
-          items: [
-            "Location data stored for maximum 90 days",
-            "User accounts active until graduation or withdrawal",
-            "Activity logs maintained for 1 year for security purposes",
-            "Immediate deletion upon account termination request"
+            "Encrypted data transfer (TLS)",
+            "Secure cloud storage (Google Cloud/Firebase)",
+            "Role-based access control",
+            "Regular audits and monitoring"
           ]
         }
       ]
     },
     {
-      title: "Your Rights and Choices",
+      title: "Data Retention and Deletion",
       icon: <Shield className="h-5 w-5" />,
       content: [
         {
-          subtitle: "Privacy Rights",
+          subtitle: "Retention Periods",
           items: [
-            "Right to access your personal data",
-            "Right to correct inaccurate information",
-            "Right to delete your account and data",
-            "Right to download your data (portability)"
-          ]
-        },
-        {
-          subtitle: "Control Options",
-          items: [
-            "Manage notification preferences",
-            "Control location sharing settings",
-            "Update emergency contact information",
-            "Request data deletion or account deactivation"
+            "Location data: kept up to 30 days",
+            "Attendance records: kept for the current academic year + 1 year",
+            "User accounts: deleted after graduation, transfer, or request",
+            "Communication logs: kept up to 90 days",
+            "Parents may request data deletion through the app or by contacting us. Requests are processed within 30 days."
           ]
         }
       ]
     },
     {
-      title: "Third-Party Services",
-      icon: <MapPin className="h-5 w-5" />,
+      title: "Children's Privacy",
+      icon: <Shield className="h-5 w-5" />,
       content: [
         {
-          subtitle: "Service Providers",
+          subtitle: "Child Protection Measures",
           items: [
-            "Google Maps for location and routing services",
-            "Supabase for secure data storage and authentication",
-            "SMS/Email providers for notifications",
-            "Analytics services for app improvement"
+            "Parents/guardians must provide consent before a student's data is used",
+            "Data collection is limited to what is needed for safety",
+            "No advertising, profiling, or behavioral tracking of children"
           ]
-        },
+        }
+      ]
+    },
+    {
+      title: "Your Rights",
+      icon: <Shield className="h-5 w-5" />,
+      content: [
         {
-          subtitle: "Data Sharing",
+          subtitle: "You may",
           items: [
-            "We do not sell personal data to third parties",
-            "Limited sharing with school administration for safety",
-            "Emergency services access during SOS situations",
-            "Legal compliance when required by law"
+            "Access and review your personal data",
+            "Correct or update inaccurate details",
+            "Request account or data deletion",
+            "Manage notification preferences",
+            "Withdraw consent at any time (may limit app features)"
           ]
         }
       ]
@@ -189,22 +169,20 @@ const PrivacyPolicy = () => {
                   <Shield className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <CardTitle className="text-2xl">Privacy Policy</CardTitle>
-                  <p className="text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
+                  <CardTitle className="text-2xl">Privacy Policy – School Van Tracker (Operated by VitalizePay)</CardTitle>
+                  <p className="text-muted-foreground">Last updated: September 16, 2025</p>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">
-                The School Van Tracker system is designed to ensure the safety and security of students 
-                during their commute to and from school. This Privacy Policy explains how we collect, 
-                use, protect, and share information in connection with our service.
+                The School Van Tracker app is operated by VitalizePay to ensure the safety and security of students 
+                during their commute to and from schools in Tamil Nadu.
               </p>
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
                 <p className="text-sm">
-                  <strong>Important:</strong> By using the School Van Tracker application, you consent 
-                  to the collection and use of information as described in this policy. If you do not 
-                  agree with this policy, please do not use our services.
+                  <strong>Important:</strong> This Privacy Policy explains how we collect, use, protect, and share personal information. 
+                  By using the app, you agree to this Privacy Policy. If you do not agree, please stop using our services.
                 </p>
               </div>
             </CardContent>
@@ -257,14 +235,17 @@ const PrivacyPolicy = () => {
                 </p>
                 <div className="space-y-2">
                   <p className="text-sm">
-                    <strong>Email:</strong> privacy@tnschooltracker.gov.in
+                    <strong>VitalizePay</strong>
                   </p>
                   <p className="text-sm">
-                    <strong>Phone:</strong> 1800-XXX-XXXX (Toll-free)
+                    <strong>Email:</strong> senthil@vitalizeventures.in
                   </p>
                   <p className="text-sm">
-                    <strong>Address:</strong> Department of Education<br />
-                    Government Office Complex
+                    <strong>Phone:</strong> +91-9489721962
+                  </p>
+                  <p className="text-sm">
+                    <strong>Address:</strong> VitalizePay, Saravanampatti,<br />
+                    Coimbatore 641035 Tamil Nadu, India
                   </p>
                 </div>
               </CardContent>
@@ -276,12 +257,8 @@ const PrivacyPolicy = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  We may update this Privacy Policy from time to time. We will notify you of any 
-                  changes by posting the new Privacy Policy on this page and updating the "Last updated" date.
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Continued use of the service after changes become effective constitutes acceptance 
-                  of the revised policy.
+                  We may update this Privacy Policy from time to time. If there are significant changes, users will be notified 
+                  via the app or email. Continued use after updates means acceptance of the revised policy.
                 </p>
               </CardContent>
             </Card>
