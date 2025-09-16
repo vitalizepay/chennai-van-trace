@@ -222,13 +222,13 @@ const RoleCard = ({ role, title, description, icon, color, onLogin, texts }: Rol
         </div>
         
         <div className="space-y-4 pt-2">
-          <Button 
+          <button 
             className="w-full h-12 text-white font-bold text-base rounded-lg shadow-lg"
             style={{ background: 'var(--gradient-button)' }}
-            disabled
+            onClick={() => window.location.href = '/auth'}
           >
             {texts.login}
-          </Button>
+          </button>
 
           <div className="space-y-3 text-center">
             <button className="text-primary font-semibold text-sm">
