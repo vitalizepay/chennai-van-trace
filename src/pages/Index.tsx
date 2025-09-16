@@ -65,45 +65,68 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex flex-col">
+    <div 
+      className="min-h-screen flex flex-col"
+      style={{ background: 'var(--gradient-primary)' }}
+    >
+      {/* Status Bar Area */}
+      <div className="h-6 bg-black/10" />
+      
       {/* Header */}
-      <header className="flex justify-between items-center p-4">
-        <div className="flex items-center gap-2">
-          <Bus className="h-8 w-8 text-primary" />
-          <h1 className="text-2xl font-bold text-primary">{t.title}</h1>
-        </div>
-        <Button variant="outline" size="sm" onClick={toggleLanguage} className="gap-2">
+      <header className="flex justify-between items-center p-4 pt-2">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={toggleLanguage} 
+          className="text-white hover:bg-white/20 gap-2"
+        >
           <Languages className="h-4 w-4" />
           {language === "en" ? "தமிழ்" : "English"}
         </Button>
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col justify-center px-4 pb-8">
-        <div className="max-w-md mx-auto w-full space-y-6">
-          {/* Hero Section */}
-          <div className="text-center space-y-2">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 pb-8">
+        <div className="max-w-sm mx-auto w-full space-y-8">
+          
+          {/* School Logo Section */}
+          <div className="text-center space-y-4">
             <div className="flex justify-center">
-              <div className="relative">
-                <Bus className="h-20 w-20 text-primary" />
-                <MapPin className="h-6 w-6 text-secondary absolute -top-1 -right-1 bg-background rounded-full p-1" />
+              <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full border-4 border-white/30 flex items-center justify-center shadow-lg">
+                <Bus className="h-12 w-12 text-white" />
               </div>
             </div>
-            <h2 className="text-xl font-semibold text-foreground">{t.subtitle}</h2>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold text-white text-center leading-tight">
+                {t.title.toUpperCase()}
+              </h1>
+              <p className="text-white/90 text-sm font-medium text-center">
+                {language === "en" ? "CBSE Affiliated School" : "சி.பி.எஸ்.இ அங்கீகரிக்கப்பட்ட பள்ளி"}
+              </p>
+            </div>
           </div>
 
           {/* Role Selection */}
           <Tabs defaultValue="parent" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="parent" className="gap-2">
+            <TabsList className="grid w-full grid-cols-3 bg-white/10 backdrop-blur-sm border border-white/20">
+              <TabsTrigger 
+                value="parent" 
+                className="gap-2 data-[state=active]:bg-white data-[state=active]:text-primary text-white/80"
+              >
                 <Users className="h-4 w-4" />
                 {t.parent}
               </TabsTrigger>
-              <TabsTrigger value="driver" className="gap-2">
+              <TabsTrigger 
+                value="driver" 
+                className="gap-2 data-[state=active]:bg-white data-[state=active]:text-primary text-white/80"
+              >
                 <Bus className="h-4 w-4" />
                 {t.driver}
               </TabsTrigger>
-              <TabsTrigger value="admin" className="gap-2">
+              <TabsTrigger 
+                value="admin" 
+                className="gap-2 data-[state=active]:bg-white data-[state=active]:text-primary text-white/80"
+              >
                 <Shield className="h-4 w-4" />
                 {t.admin}
               </TabsTrigger>
@@ -147,8 +170,20 @@ const Index = () => {
           </Tabs>
 
           {/* Footer */}
-          <div className="text-center text-sm text-muted-foreground">
-            <p>{t.poweredBy}</p>
+          <div className="text-center space-y-2">
+            <p className="text-white/70 text-xs">{t.poweredBy}</p>
+            <div className="flex justify-center items-center gap-1">
+              <div className="w-6 h-6 bg-red-500 rounded flex items-center justify-center">
+                <span className="text-white text-xs font-bold">M</span>
+              </div>
+              <div className="w-6 h-6 bg-yellow-500 rounded flex items-center justify-center">
+                <span className="text-white text-xs font-bold">C</span>
+              </div>
+              <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center">
+                <span className="text-white text-xs font-bold">B</span>
+              </div>
+            </div>
+            <p className="text-white/60 text-xs font-semibold">MY CLASSBOARD</p>
           </div>
         </div>
       </div>
@@ -168,37 +203,103 @@ interface RoleCardProps {
 
 const RoleCard = ({ role, title, description, icon, color, onLogin, texts }: RoleCardProps) => {
   return (
-    <Card className="mt-4">
-      <CardHeader className="text-center pb-3">
-        <div className={`mx-auto w-12 h-12 rounded-full bg-${color}/10 flex items-center justify-center text-${color} mb-2`}>
+    <Card className="mt-4 bg-white/95 backdrop-blur-sm border-white/30 shadow-xl">
+      <CardHeader className="text-center pb-4">
+        <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white mb-3 shadow-lg">
           {icon}
         </div>
-        <CardTitle className="text-lg">{title}</CardTitle>
-        <CardDescription className="text-sm">{description}</CardDescription>
+        <CardTitle className="text-xl font-bold text-primary">{title}</CardTitle>
+        <CardDescription className="text-foreground/70 font-medium">{description}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor={`${role}-email`}>{texts.email}</Label>
-          <Input id={`${role}-email`} type="email" placeholder="name@school.edu" />
+      <CardContent className="space-y-5">
+        <div className="space-y-3">
+          <Input 
+            id={`${role}-email`} 
+            type="text" 
+            placeholder="User Name"
+            className="h-12 text-base border-2 border-gray-200 rounded-lg focus:border-primary"
+          />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor={`${role}-password`}>{texts.password}</Label>
-          <Input id={`${role}-password`} type="password" />
+        <div className="space-y-3">
+          <Input 
+            id={`${role}-password`} 
+            type="password" 
+            placeholder="Password"
+            className="h-12 text-base border-2 border-gray-200 rounded-lg focus:border-primary"
+          />
         </div>
-        <div className="space-y-2">
+        
+        <div className="space-y-4 pt-2">
           <Button 
-            className={`w-full bg-${color} hover:bg-${color}/90 text-${color}-foreground`}
+            className="w-full h-12 text-white font-bold text-base rounded-lg shadow-lg"
+            style={{ background: 'var(--gradient-button)' }}
             disabled
           >
             {texts.login}
           </Button>
+          
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-4 my-4">
+              <div className="h-px bg-gray-300 flex-1"></div>
+              <span className="text-gray-500 text-sm font-medium">OR</span>
+              <div className="h-px bg-gray-300 flex-1"></div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 justify-center">
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="w-12 h-12 p-0 border-2"
+              disabled
+            >
+              <svg viewBox="0 0 24 24" className="w-6 h-6">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="w-12 h-12 p-0 border-2"
+              disabled
+            >
+              <svg viewBox="0 0 24 24" className="w-6 h-6">
+                <path fill="#00BCF2" d="M0 0h11.377v11.372H0z"/>
+                <path fill="#00BCF2" d="M12.623 0H24v11.372H12.623z"/>
+                <path fill="#00BCF2" d="M0 12.628h11.377V24H0z"/>
+                <path fill="#FFC325" d="M12.623 12.628H24V24H12.623z"/>
+              </svg>
+            </Button>
+          </div>
+
+          <div className="space-y-3 text-center">
+            <button className="text-primary font-semibold text-sm">
+              Forgot Password?
+            </button>
+            <div className="flex items-center gap-2 justify-center">
+              <input type="checkbox" className="w-4 h-4" />
+              <span className="text-sm text-gray-600">Remember me</span>
+            </div>
+            <button className="text-primary font-semibold text-sm">
+              Forgot Username?
+            </button>
+          </div>
+
           <Button 
-            variant="outline" 
-            className="w-full" 
+            variant="ghost" 
+            className="w-full text-primary font-semibold hover:bg-primary/10" 
             onClick={() => onLogin(role)}
           >
             {texts.demoLogin}
           </Button>
+
+          <button className="text-red-500 font-semibold text-sm w-full">
+            Privacy Policy
+          </button>
         </div>
       </CardContent>
     </Card>
