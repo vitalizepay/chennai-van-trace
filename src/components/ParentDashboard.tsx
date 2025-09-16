@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, MapPin, Clock, AlertTriangle, UserCheck, UserX, Bell, BellRing } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, AlertTriangle, UserCheck, UserX, Bell, BellRing, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import SOSButton from "@/components/SOSButton";
 import GoogleMap from "@/components/GoogleMap";
 import { toast } from "@/hooks/use-toast";
@@ -13,6 +14,7 @@ interface ParentDashboardProps {
 }
 
 const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
+  const { signOut } = useAuth();
   const [childStatus, setChildStatus] = useState<"absent" | "present">("present");
   const [vanStatus, setVanStatus] = useState<"approaching" | "arrived" | "en_route">("en_route");
   const [eta, setETA] = useState("12 mins");
@@ -110,6 +112,9 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
           <h1 className="text-lg font-semibold">{t.title}</h1>
           <p className="text-sm opacity-90">{t.childName}</p>
         </div>
+        <Button variant="ghost" size="sm" className="text-primary-foreground" onClick={signOut}>
+          <LogOut className="h-4 w-4" />
+        </Button>
         <SOSButton />
       </header>
 

@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Play, Square, Users, MapPin, UserCheck, UserX } from "lucide-react";
+import { ArrowLeft, Play, Square, Users, MapPin, UserCheck, UserX, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import SOSButton from "@/components/SOSButton";
 import { toast } from "@/hooks/use-toast";
 
@@ -21,6 +22,7 @@ interface Student {
 }
 
 const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
+  const { signOut } = useAuth();
   const [tripActive, setTripActive] = useState(false);
   const [students, setStudents] = useState<Student[]>([
     { id: "1", name: "Aarav Kumar", stop: "Anna Nagar", boarded: false, dropped: false },
@@ -110,6 +112,9 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
           <h1 className="text-lg font-semibold">{t.title}</h1>
           <p className="text-sm opacity-90">{t.driverName} • {t.vanNumber}</p>
         </div>
+        <Button variant="ghost" size="sm" className="text-driver-foreground" onClick={signOut}>
+          <LogOut className="h-4 w-4" />
+        </Button>
         <SOSButton />
       </header>
 

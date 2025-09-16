@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog } from "lucide-react";
+import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog, LogOut } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import GoogleMap from "./GoogleMap";
 import UserManagement from "./UserManagement";
 
@@ -31,6 +32,7 @@ interface Alert {
 }
 
 const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
+  const { signOut } = useAuth();
   const [vans] = useState<Van[]>([
     { id: "1", number: "VAN-001", driver: "Raj Kumar", status: "active", students: 24, route: "Route A" },
     { id: "2", number: "VAN-002", driver: "Priya Singh", status: "active", students: 18, route: "Route B" },
@@ -140,6 +142,9 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
           <h1 className="text-lg font-semibold">{t.title}</h1>
           <p className="text-sm opacity-90">School Management System</p>
         </div>
+        <Button variant="ghost" size="sm" className="text-admin-foreground" onClick={signOut}>
+          <LogOut className="h-4 w-4" />
+        </Button>
         <Button variant="ghost" size="sm" className="text-admin-foreground">
           <Settings className="h-4 w-4" />
         </Button>
