@@ -10,8 +10,6 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
-  signInWithGoogle: () => Promise<{ error: any }>;
-  signInWithMicrosoft: () => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (data: any) => Promise<{ error: any }>;
 }
@@ -128,30 +126,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return { error };
   };
 
-  const signInWithGoogle = async () => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: redirectUrl
-      }
-    });
-    return { error };
-  };
-
-  const signInWithMicrosoft = async () => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'azure',
-      options: {
-        redirectTo: redirectUrl,
-        scopes: 'email'
-      }
-    });
-    return { error };
-  };
 
   const signOut = async () => {
     if (user) {
@@ -192,8 +166,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loading,
     signIn,
     signUp,
-    signInWithGoogle,
-    signInWithMicrosoft,
     signOut,
     updateProfile
   };
