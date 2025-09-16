@@ -291,7 +291,11 @@ const RoleCard = ({ role, title, description, icon, color, onLogin, texts }: Rol
             {texts.demoLogin}
           </Button>
 
-          <button className="text-red-500 font-semibold text-sm w-full">
+          <button 
+            className="text-red-500 font-semibold text-sm w-full"
+            onClick={() => window.open('/privacy', '_blank')}
+            type="button"
+          >
             Privacy Policy
           </button>
         </div>

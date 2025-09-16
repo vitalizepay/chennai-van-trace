@@ -233,6 +233,21 @@ const Auth = () => {
                   </svg>
                   Continue with Google
                 </Button>
+                
+                {/* Footer Links */}
+                <div className="mt-6 pt-4 border-t">
+                  <p className="text-center text-xs text-muted-foreground">
+                    By continuing, you agree to our{" "}
+                    <button 
+                      className="text-primary hover:underline" 
+                      onClick={() => navigate('/privacy')}
+                      type="button"
+                    >
+                      Privacy Policy
+                    </button>
+                    {" "}and Terms of Service
+                  </p>
+                </div>
               </TabsContent>
 
               <TabsContent value="signup" className="space-y-4">
@@ -431,6 +446,21 @@ const Auth = () => {
                   </svg>
                   Register with Google
                 </Button>
+                
+                {/* Footer Links */}
+                <div className="mt-6 pt-4 border-t">
+                  <p className="text-center text-xs text-muted-foreground">
+                    By continuing, you agree to our{" "}
+                    <button 
+                      className="text-primary hover:underline" 
+                      onClick={() => navigate('/privacy')}
+                      type="button"
+                    >
+                      Privacy Policy
+                    </button>
+                    {" "}and Terms of Service
+                  </p>
+                </div>
               </TabsContent>
             </Tabs>
           </CardContent>
