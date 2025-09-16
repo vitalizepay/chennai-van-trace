@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      device_sessions: {
+        Row: {
+          created_at: string
+          device_fingerprint: string
+          device_info: Json | null
+          expires_at: string
+          id: string
+          is_active: boolean
+          last_used_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_fingerprint: string
+          device_info?: Json | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          last_used_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_fingerprint?: string
+          device_info?: Json | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          last_used_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       driver_details: {
         Row: {
           created_at: string
@@ -44,6 +77,42 @@ export type Database = {
           route_assigned?: string | null
           user_id?: string
           van_assigned?: string | null
+        }
+        Relationships: []
+      }
+      otps: {
+        Row: {
+          attempts: number
+          created_at: string
+          expires_at: string
+          id: string
+          max_attempts: number
+          mobile: string
+          otp_code: string
+          purpose: string
+          verified: boolean
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          expires_at: string
+          id?: string
+          max_attempts?: number
+          mobile: string
+          otp_code: string
+          purpose?: string
+          verified?: boolean
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          max_attempts?: number
+          mobile?: string
+          otp_code?: string
+          purpose?: string
+          verified?: boolean
         }
         Relationships: []
       }
@@ -80,6 +149,7 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          mobile: string | null
           phone: string | null
           status: Database["public"]["Enums"]["user_status"]
           updated_at: string
@@ -90,6 +160,7 @@ export type Database = {
           email: string
           full_name: string
           id?: string
+          mobile?: string | null
           phone?: string | null
           status?: Database["public"]["Enums"]["user_status"]
           updated_at?: string
@@ -100,6 +171,7 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
+          mobile?: string | null
           phone?: string | null
           status?: Database["public"]["Enums"]["user_status"]
           updated_at?: string
@@ -166,6 +238,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_expired_otps: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      generate_otp: {
+        Args: { _mobile: string; _purpose?: string }
+        Returns: string
+      }
       get_user_status: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["user_status"]
@@ -180,6 +260,10 @@ export type Database = {
       make_user_admin: {
         Args: { _user_email: string }
         Returns: undefined
+      }
+      verify_otp: {
+        Args: { _mobile: string; _otp_code: string; _purpose?: string }
+        Returns: boolean
       }
     }
     Enums: {
