@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { Car, Users, Shield, Bus } from "lucide-react";
 import ParentOtpAuth from "@/components/auth/ParentOtpAuth";
 import DriverPasswordAuth from "@/components/auth/DriverPasswordAuth";
+import AdminAuth from "@/components/auth/AdminAuth";
 
 const Auth = () => {
   const [activeTab, setActiveTab] = useState<'parent' | 'driver' | 'admin'>('parent');
@@ -73,13 +74,13 @@ const Auth = () => {
               <TabsContent value="admin" className="space-y-4">
                 <div className="text-center space-y-2 mb-6">
                   <Badge variant="secondary" className="text-xs">
-                    Mobile + Password
+                    Email or Mobile + Password
                   </Badge>
                   <p className="text-sm text-muted-foreground">
-                    Administrative access with enhanced security
+                    Administrative access with multiple login options
                   </p>
                 </div>
-                <DriverPasswordAuth userType="admin" onSuccess={handleAuthSuccess} />
+                <AdminAuth onSuccess={handleAuthSuccess} />
               </TabsContent>
             </Tabs>
 
