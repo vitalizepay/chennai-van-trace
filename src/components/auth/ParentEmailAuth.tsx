@@ -11,8 +11,6 @@ interface ParentEmailAuthProps {
 }
 
 const ParentEmailAuth = ({ onSuccess }: ParentEmailAuthProps) => {
-  const [loginMethod, setLoginMethod] = useState<'email' | 'username'>('email');
-  const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -22,22 +20,10 @@ const ParentEmailAuth = ({ onSuccess }: ParentEmailAuthProps) => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const loginValue = loginMethod === 'email' ? email : username;
-    
-    if (!loginValue || !password) {
+    if (!username || !password) {
       toast({
         title: "Missing Information",
-        description: `Please enter both ${loginMethod} and password`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Basic email validation if using email
-    if (loginMethod === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast({
-        title: "Invalid Email",
-        description: "Please enter a valid email address",
+        description: "Please enter both username and password",
         variant: "destructive",
       });
       return;
@@ -45,15 +31,15 @@ const ParentEmailAuth = ({ onSuccess }: ParentEmailAuthProps) => {
 
     setLoading(true);
     try {
-      // For username login, we'll use the username as email for now
-      // In a real system, you'd need to look up the email by username first
-      const loginEmail = loginMethod === 'email' ? email : `${username}@parent.local`;
+      // Check if username looks like an email (contains @)
+      const isEmail = username.includes('@');
+      const loginEmail = isEmail ? username : `${username}@parent.local`;
       
       const { error } = await signIn(loginEmail, password);
       if (error) {
         toast({
           title: "Login Failed",
-          description: error.message || `Invalid ${loginMethod} or password`,
+          description: error.message || "Invalid username or password",
           variant: "destructive",
         });
       } else {
@@ -83,62 +69,18 @@ const ParentEmailAuth = ({ onSuccess }: ParentEmailAuthProps) => {
 
   return (
     <div className="space-y-4">
-      {/* Login Method Toggle */}
-      <div className="flex bg-muted rounded-lg p-1">
-        <button
-          type="button"
-          onClick={() => setLoginMethod('email')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md transition-colors ${
-            loginMethod === 'email'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Mail className="h-4 w-4" />
-          Email
-        </button>
-        <button
-          type="button"
-          onClick={() => setLoginMethod('username')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md transition-colors ${
-            loginMethod === 'username'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <User className="h-4 w-4" />
-          Username
-        </button>
-      </div>
-
       <form onSubmit={handleLogin} className="space-y-4">
-        {/* Email/Username Input */}
+        {/* Username Input */}
         <div className="space-y-2">
-          <Label htmlFor="login-input">
-            {loginMethod === 'email' ? 'Email Address' : 'Username'}
-          </Label>
+          <Label htmlFor="username">Username</Label>
           <div className="relative">
-            {loginMethod === 'email' ? (
-              <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            ) : (
-              <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            )}
+            <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              id="login-input"
-              type={loginMethod === 'email' ? 'email' : 'text'}
-              placeholder={
-                loginMethod === 'email' 
-                  ? 'Enter your email address' 
-                  : 'Enter your username'
-              }
-              value={loginMethod === 'email' ? email : username}
-              onChange={(e) => {
-                if (loginMethod === 'email') {
-                  setEmail(e.target.value);
-                } else {
-                  setUsername(e.target.value);
-                }
-              }}
+              id="username"
+              type="text"
+              placeholder="Enter email or username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="pl-10"
               required
             />
@@ -182,7 +124,7 @@ const ParentEmailAuth = ({ onSuccess }: ParentEmailAuthProps) => {
               Signing In...
             </>
           ) : (
-            `Sign In with ${loginMethod === 'email' ? 'Email' : 'Username'}`
+            "Sign In"
           )}
         </Button>
       </form>
@@ -200,7 +142,7 @@ const ParentEmailAuth = ({ onSuccess }: ParentEmailAuthProps) => {
 
       {/* Help Text */}
       <div className="text-xs text-muted-foreground text-center mt-4 space-y-1">
-        <p>Parents can login using either email or username</p>
+        <p>Enter your email address or username to login</p>
         <p>Contact your school administrator if you need help accessing your account</p>
       </div>
     </div>
