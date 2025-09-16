@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { Car, Users, Shield, Bus } from "lucide-react";
-import ParentOtpAuth from "@/components/auth/ParentOtpAuth";
+import ParentEmailAuth from "@/components/auth/ParentEmailAuth";
 import DriverPasswordAuth from "@/components/auth/DriverPasswordAuth";
 import AdminAuth from "@/components/auth/AdminAuth";
 
@@ -50,13 +50,13 @@ const Auth = () => {
               <TabsContent value="parent" className="space-y-4">
                 <div className="text-center space-y-2 mb-6">
                   <Badge variant="secondary" className="text-xs">
-                    OTP-based Login
+                    Email or Username Login
                   </Badge>
                   <p className="text-sm text-muted-foreground">
-                    Quick and secure login with mobile verification
+                    Secure login with email or username & password
                   </p>
                 </div>
-                <ParentOtpAuth onSuccess={handleAuthSuccess} />
+                <ParentEmailAuth onSuccess={handleAuthSuccess} />
               </TabsContent>
 
               <TabsContent value="driver" className="space-y-4">
