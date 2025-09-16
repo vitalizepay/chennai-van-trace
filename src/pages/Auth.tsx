@@ -31,7 +31,7 @@ const Auth = () => {
 
           <CardContent>
             <Tabs value={activeTab} onValueChange={(value: any) => setActiveTab(value)} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-2 bg-muted">
                 <TabsTrigger value="parent" className="gap-1 text-xs">
                   <Users className="h-3 w-3" />
                   Parent
