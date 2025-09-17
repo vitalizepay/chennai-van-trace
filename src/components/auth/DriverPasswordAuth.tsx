@@ -55,19 +55,21 @@ const DriverPasswordAuth = ({ userType, onSuccess }: DriverPasswordAuthProps) =>
     <form onSubmit={handleLogin} className="space-y-6">
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="mobile">Mobile Number</Label>
+          <Label htmlFor="mobile">Mobile Number (Username)</Label>
           <div className="relative">
             <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               id="mobile"
               type="tel"
-              placeholder="+91 98765 43210"
+              placeholder="Your 10-digit mobile number"
               value={mobile}
-              onChange={(e) => setMobile(e.target.value)}
+              onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
               className="pl-10"
+              maxLength={10}
               required
             />
           </div>
+          <p className="text-xs text-muted-foreground">Your mobile number is your username</p>
         </div>
 
         <div className="space-y-2">
@@ -235,12 +237,15 @@ const DriverPasswordAuth = ({ userType, onSuccess }: DriverPasswordAuthProps) =>
           </Button>
         </div>
         
-        <p className="text-xs text-muted-foreground">
-          {userType === 'driver' 
-            ? "Driver accounts are managed by school administration"
-            : "Admin accounts have additional security requirements"
-          }
-        </p>
+        <div className="text-xs text-muted-foreground space-y-1">
+          <p><strong>No username needed!</strong> Just use your mobile number and password</p>
+          <p>
+            {userType === 'driver' 
+              ? "Driver accounts are managed by school administration"
+              : "Admin accounts have additional security requirements"
+            }
+          </p>
+        </div>
       </div>
     </form>
   );

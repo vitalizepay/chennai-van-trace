@@ -133,13 +133,13 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
       <form onSubmit={handleLogin} className="space-y-4">
         {/* Mobile Input */}
         <div className="space-y-2">
-          <Label htmlFor="mobile">Mobile Number</Label>
+          <Label htmlFor="mobile">Mobile Number (Username)</Label>
           <div className="relative">
             <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               id="mobile"
               type="tel"
-              placeholder="Enter 10-digit mobile number"
+              placeholder="Your 10-digit mobile number"
               value={mobile}
               onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
               className="pl-10"
@@ -147,6 +147,7 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
               required
             />
           </div>
+          <p className="text-xs text-muted-foreground">Your mobile number is your username</p>
         </div>
 
         {/* Password Input */}
@@ -264,7 +265,7 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
 
       {/* Help Text */}
       <div className="text-xs text-muted-foreground text-center mt-4 space-y-1">
-        <p>Enter your mobile number and password to login</p>
+        <p><strong>No username needed!</strong> Just use your mobile number and password</p>
         <p>Contact your school administrator if you need help accessing your account</p>
       </div>
     </div>
