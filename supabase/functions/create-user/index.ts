@@ -24,11 +24,14 @@ serve(async (req) => {
     )
 
     const { userData } = await req.json()
+    console.log('Creating user with data:', { ...userData, password: userData.password ? '[REDACTED]' : undefined })
 
     // Generate a secure temporary password if not provided
     const tempPassword = userData.password || Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8).toUpperCase() + '123!'
+    console.log('Generated temp password for user:', userData.email)
 
     // Create user in Supabase Auth with admin client
+    console.log('Creating auth user for:', userData.email)
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: userData.email,
       password: tempPassword,
@@ -38,11 +41,20 @@ serve(async (req) => {
       }
     })
 
-    if (authError) throw authError
+    if (authError) {
+      console.error('Auth creation error:', authError)
+      throw authError
+    }
 
-    if (!authData.user) throw new Error('Failed to create user')
+    if (!authData.user) {
+      console.error('No user data returned from auth creation')
+      throw new Error('Failed to create user')
+    }
+
+    console.log('Auth user created successfully:', authData.user.id)
 
     // Update the profile
+    console.log('Updating profile for user:', authData.user.id)
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .update({
@@ -53,20 +65,43 @@ serve(async (req) => {
       })
       .eq('user_id', authData.user.id)
 
-    if (profileError) throw profileError
+    if (profileError) {
+      console.error('Profile update error:', profileError)
+      throw profileError
+    }
 
-    // Assign role
+    console.log('Profile updated successfully')
+
+    // Handle school assignment for admin role
+    let schoolId = null
+    if (userData.role === 'admin' && userData.schoolId) {
+      schoolId = userData.schoolId
+      console.log('Assigning admin to school:', schoolId)
+    }
+
+    // Assign role with school assignment
+    const roleInsertData: any = {
+      user_id: authData.user.id,
+      role: userData.role,
+      assigned_by: userData.createdBy
+    }
+
+    if (schoolId) {
+      roleInsertData.school_id = schoolId
+    }
+
+    console.log('Inserting role with data:', roleInsertData)
     const { error: roleError } = await supabaseAdmin
       .from('user_roles')
-      .insert({
-        user_id: authData.user.id,
-        role: userData.role,
-        assigned_by: userData.createdBy
-      })
+      .insert(roleInsertData)
 
-    if (roleError) throw roleError
+    if (roleError) {
+      console.error('Role insertion error:', roleError)
+      throw roleError
+    }
 
     // Add role-specific details
+    console.log('Adding role-specific details for:', userData.role)
     if (userData.role === 'driver') {
       const { error: driverError } = await supabaseAdmin
         .from('driver_details')
@@ -92,6 +127,8 @@ serve(async (req) => {
       if (parentError) throw parentError
     }
 
+    console.log('User created successfully:', authData.user.id)
+
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -105,9 +142,11 @@ serve(async (req) => {
     )
 
   } catch (error) {
+    console.error('Error creating user:', error)
     return new Response(
       JSON.stringify({ 
-        error: error.message 
+        error: error.message,
+        details: error.toString()
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
