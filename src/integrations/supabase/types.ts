@@ -246,6 +246,10 @@ export type Database = {
         Args: { _email: string; _full_name: string; _mobile: string }
         Returns: string
       }
+      create_super_admin_user: {
+        Args: { _email: string; _full_name: string; _mobile: string }
+        Returns: string
+      }
       generate_otp: {
         Args: { _mobile: string; _purpose?: string }
         Returns: string
