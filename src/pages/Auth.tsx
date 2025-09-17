@@ -16,7 +16,10 @@ const Auth = () => {
   console.log('Auth component rendered, activeTab:', activeTab);
 
   const handleAuthSuccess = () => {
-    navigate("/");
+    // Add a small delay to ensure auth state has fully updated
+    setTimeout(() => {
+      navigate("/");
+    }, 200);
   };
 
   return (

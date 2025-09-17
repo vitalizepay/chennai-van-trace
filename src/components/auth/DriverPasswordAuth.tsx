@@ -17,7 +17,7 @@ const DriverPasswordAuth = ({ userType, onSuccess }: DriverPasswordAuthProps) =>
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  const { signInWithMobilePassword } = useAuth();
+  const { signInWithMobilePassword, resetPassword, getUserByMobile } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,20 +101,86 @@ const DriverPasswordAuth = ({ userType, onSuccess }: DriverPasswordAuthProps) =>
       </Button>
 
       <div className="text-center space-y-2">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="text-primary"
-          onClick={() => {
-            toast({
-              title: "Contact Admin",
-              description: "Please contact your administrator to reset your password",
-            });
-          }}
-        >
-          Forgot Password?
-        </Button>
+        <div className="flex justify-center gap-4">
+          <Button
+            type="button"
+            variant="ghost" 
+            size="sm"
+            className="text-primary"
+            onClick={async () => {
+              if (!mobile?.trim()) {
+                toast({
+                  title: "Enter Mobile Number",
+                  description: "Please enter your mobile number first",
+                  variant: "destructive",
+                });
+                return;
+              }
+
+              setLoading(true);
+              try {
+                const result = await resetPassword(mobile);
+                if (result.success && result.tempPassword) {
+                  toast({
+                    title: "Password Reset Successful",
+                    description: `Your temporary password is: ${result.tempPassword}. Please use this to login.`,
+                    duration: 10000,
+                  });
+                } else {
+                  toast({
+                    title: "Reset Failed",
+                    description: result.error || "Could not reset password",
+                    variant: "destructive",
+                  });
+                }
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+          >
+            Forgot Password?
+          </Button>
+          
+          <Button
+            type="button" 
+            variant="ghost"
+            size="sm"
+            className="text-primary"
+            onClick={async () => {
+              if (!mobile?.trim()) {
+                toast({
+                  title: "Enter Mobile Number", 
+                  description: "Please enter your mobile number first",
+                  variant: "destructive",
+                });
+                return;
+              }
+
+              setLoading(true);
+              try {
+                const result = await getUserByMobile(mobile);
+                if (result.success && result.user) {
+                  toast({
+                    title: "Account Found",
+                    description: `Account found for: ${result.user.full_name} (${result.user.email})`,
+                  });
+                } else {
+                  toast({
+                    title: "No Account Found",
+                    description: result.error || "No account found with this mobile number",
+                    variant: "destructive",
+                  });
+                }
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+          >
+            Forgot Username?
+          </Button>
+        </div>
         
         <p className="text-xs text-muted-foreground">
           {userType === 'driver' 

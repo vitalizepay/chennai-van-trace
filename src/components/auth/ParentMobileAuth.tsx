@@ -15,7 +15,7 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signInWithMobilePassword } = useAuth();
+  const { signInWithMobilePassword, resetPassword } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,11 +65,41 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
     }
   };
 
-  const handleForgotPassword = () => {
-    toast({
-      title: "Password Reset",
-      description: "Please contact your school administrator for password reset assistance.",
-    });
+  const handleForgotPassword = async () => {
+    if (!mobile || !/^[6-9]\d{9}$/.test(mobile)) {
+      toast({
+        title: "Enter Mobile Number",
+        description: "Please enter your mobile number first to reset password",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await resetPassword(mobile);
+      if (result.success && result.tempPassword) {
+        toast({
+          title: "Password Reset Successful",
+          description: `Your temporary password is: ${result.tempPassword}. Please use this to login and change your password.`,
+          duration: 10000,
+        });
+      } else {
+        toast({
+          title: "Reset Failed", 
+          description: result.error || "Could not reset password",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Reset Error",
+        description: "An unexpected error occurred while resetting password",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

@@ -19,6 +19,8 @@ interface AuthContextType {
   sendOtp: (mobile: string) => Promise<{ error: any; success?: boolean }>;
   verifyOtp: (mobile: string, otp: string) => Promise<{ error: any; user?: User }>;
   signInWithMobilePassword: (mobile: string, password: string) => Promise<{ error: any }>;
+  resetPassword: (mobile: string) => Promise<{ success: boolean; tempPassword?: string; message?: string; error?: string }>;
+  getUserByMobile: (mobile: string) => Promise<{ success: boolean; user?: any; message?: string; error?: string }>;
   checkDeviceSession: () => Promise<boolean>;
   checkTempPassword: () => Promise<boolean>;
 }
@@ -278,19 +280,84 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const profile = users[0];
 
       // Sign in with email/password
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: profile.email,
         password,
       });
 
       if (error) throw error;
 
-      // Create device session for auto-login
-      await createDeviceSession(profile.user_id);
+      // Wait for auth state to update before returning
+      if (data.user) {
+        setUser(data.user);
+        setSession(data.session);
+        
+        // Create device session for auto-login
+        await createDeviceSession(profile.user_id);
+        
+        // Wait a bit for state to propagate
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
       
       return { error: null };
     } catch (error: any) {
       return { error };
+    }
+  };
+
+  const resetPassword = async (mobile: string) => {
+    try {
+      // Find user by mobile number
+      const { data: users, error: profileError } = await supabase
+        .rpc('get_user_for_mobile_login', { _mobile: mobile });
+
+      if (profileError) throw profileError;
+      if (!users || users.length === 0) {
+        throw new Error('No account found with this mobile number');
+      }
+
+      const profile = users[0];
+
+      // Call the reset password edge function
+      const { data, error } = await supabase.functions.invoke('reset-user-password', {
+        body: { userId: profile.user_id }
+      });
+
+      if (error) throw error;
+
+      return { 
+        success: true, 
+        tempPassword: data.tempPassword,
+        message: 'A temporary password has been generated for your account'
+      };
+    } catch (error: any) {
+      return { 
+        success: false, 
+        error: error.message || 'Failed to reset password'
+      };
+    }
+  };
+
+  const getUserByMobile = async (mobile: string) => {
+    try {
+      const { data: users, error } = await supabase
+        .rpc('get_user_for_mobile_login', { _mobile: mobile });
+
+      if (error) throw error;
+      if (!users || users.length === 0) {
+        throw new Error('No account found with this mobile number');
+      }
+
+      return { 
+        success: true, 
+        user: users[0],
+        message: `Account found for ${users[0].full_name}`
+      };
+    } catch (error: any) {
+      return { 
+        success: false, 
+        error: error.message || 'No account found'
+      };
     }
   };
 
@@ -409,6 +476,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     sendOtp,
     verifyOtp,
     signInWithMobilePassword,
+    resetPassword,
+    getUserByMobile,
     checkDeviceSession,
     checkTempPassword
   };
