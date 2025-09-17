@@ -92,11 +92,23 @@ serve(async (req) => {
       console.log('New auth user created successfully:', createData.user.id)
     }
 
-    // Handle profile creation/update properly
+    // Handle profile creation/update with proper conflict resolution
     console.log('Handling profile for user:', authData.user.id)
     
-    if (isExistingUser) {
-      // Update existing profile
+    // First check if profile exists
+    const { data: existingProfile, error: profileCheckError } = await supabaseAdmin
+      .from('profiles')
+      .select('user_id')
+      .eq('user_id', authData.user.id)
+      .single()
+
+    if (profileCheckError && profileCheckError.code !== 'PGRST116') {
+      console.error('Error checking existing profile:', profileCheckError)
+      throw profileCheckError
+    }
+
+    if (existingProfile) {
+      // Profile exists - update it
       console.log('Updating existing profile')
       const { error: profileUpdateError } = await supabaseAdmin
         .from('profiles')
@@ -115,7 +127,7 @@ serve(async (req) => {
       }
       console.log('Profile updated successfully')
     } else {
-      // Create new profile
+      // Profile doesn't exist - create it
       console.log('Creating new profile')
       const { error: profileInsertError } = await supabaseAdmin
         .from('profiles')
