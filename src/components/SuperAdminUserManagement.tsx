@@ -433,8 +433,10 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
     if (!userToDelete) return;
 
     try {
-      // Use the admin client to delete the user
-      const { error } = await supabase.auth.admin.deleteUser(userToDelete.user_id);
+      // Use the edge function to delete the user
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { userId: userToDelete.user_id }
+      });
 
       if (error) throw error;
 
