@@ -15,7 +15,7 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signInWithMobilePassword, resetPassword } = useAuth();
+  const { signInWithMobilePassword, resetPassword, getUserByMobile } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,14 +169,63 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
         </Button>
       </form>
 
-      {/* Forgot Password Link */}
-      <div className="text-center">
+      <div className="text-center space-y-2">
         <Button
+          type="button"
           variant="link"
           onClick={handleForgotPassword}
           className="text-sm text-muted-foreground hover:text-foreground"
+          disabled={loading}
         >
           Forgot Password?
+        </Button>
+        
+        <Button
+          type="button"
+          variant="link"
+          onClick={async () => {
+            console.log('Forgot Username clicked, mobile:', mobile);
+            if (!mobile?.trim() || !/^[6-9]\d{9}$/.test(mobile)) {
+              toast({
+                title: "Enter Valid Mobile Number", 
+                description: "Please enter your 10-digit mobile number first",
+                variant: "destructive",
+              });
+              return;
+            }
+
+            setLoading(true);
+            try {
+              console.log('Calling getUserByMobile...');
+              const result = await getUserByMobile(mobile);
+              console.log('getUserByMobile result:', result);
+              if (result.success && result.user) {
+                toast({
+                  title: "Account Found",
+                  description: `Your account: ${result.user.full_name} (${result.user.email})`,
+                });
+              } else {
+                toast({
+                  title: "No Account Found",
+                  description: result.error || "No account found with this mobile number",
+                  variant: "destructive",
+                });
+              }
+            } catch (error) {
+              console.error('Forgot Username error:', error);
+              toast({
+                title: "Lookup Error",
+                description: "An unexpected error occurred while looking up account",
+                variant: "destructive",
+              });
+            } finally {
+              setLoading(false);
+            }
+          }}
+          className="text-sm text-muted-foreground hover:text-foreground"
+          disabled={loading}
+        >
+          Forgot Username?
         </Button>
       </div>
 
