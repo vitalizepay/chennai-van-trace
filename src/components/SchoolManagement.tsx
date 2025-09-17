@@ -310,7 +310,12 @@ const SchoolManagement = ({ language }: SchoolManagementProps) => {
               {t.addSchool}
             </Button>
           </DialogTrigger>
-          <SchoolFormDialog />
+          <SchoolFormDialog 
+            formData={formData}
+            setFormData={setFormData}
+            texts={t}
+            onSave={handleCreate}
+          />
         </Dialog>
       </div>
 
@@ -406,7 +411,13 @@ const SchoolManagement = ({ language }: SchoolManagementProps) => {
                         {t.edit}
                       </Button>
                     </DialogTrigger>
-                    <SchoolFormDialog isEdit />
+                    <SchoolFormDialog 
+                      isEdit 
+                      formData={formData}
+                      setFormData={setFormData}
+                      texts={t}
+                      onSave={handleUpdate}
+                    />
                   </Dialog>
                   
                   <AlertDialog>
@@ -450,93 +461,120 @@ const SchoolManagement = ({ language }: SchoolManagementProps) => {
     </div>
   );
 
-  function SchoolFormDialog({ isEdit = false }: { isEdit?: boolean }) {
-    return (
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <School className="h-5 w-5" />
-            {isEdit ? t.editSchool : t.addSchool}
-          </DialogTitle>
-          <DialogDescription>
-            {isEdit ? "Update the school information below" : "Fill in the details to add a new school"}
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">{t.schoolName} *</Label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                placeholder="Enter school name"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">{t.location} *</Label>
-              <Input
-                value={formData.location}
-                onChange={(e) => setFormData({...formData, location: e.target.value})}
-                placeholder="e.g., Chennai Central"
-              />
-            </div>
-          </div>
+};
 
+interface SchoolFormDialogProps {
+  isEdit?: boolean;
+  formData: {
+    name: string;
+    location: string;
+    address: string;
+    contact_email: string;
+    contact_phone: string;
+    status: 'active' | 'inactive';
+  };
+  setFormData: React.Dispatch<React.SetStateAction<{
+    name: string;
+    location: string;
+    address: string;
+    contact_email: string;
+    contact_phone: string;
+    status: 'active' | 'inactive';
+  }>>;
+  texts: any;
+  onSave: () => void;
+}
+
+function SchoolFormDialog({ isEdit = false, formData, setFormData, texts: t, onSave }: SchoolFormDialogProps) {
+  return (
+    <DialogContent className="max-w-2xl">
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2">
+          <School className="h-5 w-5" />
+          {isEdit ? t.editSchool : t.addSchool}
+        </DialogTitle>
+        <DialogDescription>
+          {isEdit ? "Update the school information below" : "Fill in the details to add a new school"}
+        </DialogDescription>
+      </DialogHeader>
+      
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-sm font-medium">{t.address} *</Label>
+            <Label className="text-sm font-medium">{t.schoolName} *</Label>
             <Input
-              value={formData.address}
-              onChange={(e) => setFormData({...formData, address: e.target.value})}
-              placeholder="Full address"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="Enter school name"
+              className="w-full"
             />
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">{t.contactEmail}</Label>
-              <Input
-                type="email"
-                value={formData.contact_email}
-                onChange={(e) => setFormData({...formData, contact_email: e.target.value})}
-                placeholder="admin@school.edu"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">{t.contactPhone}</Label>
-              <Input
-                value={formData.contact_phone}
-                onChange={(e) => setFormData({...formData, contact_phone: e.target.value})}
-                placeholder="+91-44-12345678"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                if (isEdit) {
-                  setShowEditDialog(false);
-                  setEditingSchool(null);
-                } else {
-                  setShowCreateDialog(false);
-                }
-                resetForm();
-              }}
-            >
-              {t.cancel}
-            </Button>
-            <Button onClick={isEdit ? handleUpdate : handleCreate}>
-              {isEdit ? t.save : t.create}
-            </Button>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">{t.location} *</Label>
+            <Input
+              value={formData.location}
+              onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+              placeholder="Enter location"
+              className="w-full"
+            />
           </div>
         </div>
-      </DialogContent>
-    );
-  }
-};
+        
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">{t.address} *</Label>
+          <Input
+            value={formData.address}
+            onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+            placeholder="Enter full address"
+            className="w-full"
+          />
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">{t.contactEmail}</Label>
+            <Input
+              type="email"
+              value={formData.contact_email}
+              onChange={(e) => setFormData(prev => ({ ...prev, contact_email: e.target.value }))}
+              placeholder="Enter contact email"
+              className="w-full"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">{t.contactPhone}</Label>
+            <Input
+              value={formData.contact_phone}
+              onChange={(e) => setFormData(prev => ({ ...prev, contact_phone: e.target.value }))}
+              placeholder="Enter contact phone"
+              className="w-full"
+            />
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">{t.status}</Label>
+          <select
+            value={formData.status}
+            onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as 'active' | 'inactive' }))}
+            className="w-full px-3 py-2 border border-input bg-background rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <option value="active">{t.active}</option>
+            <option value="inactive">{t.inactive}</option>
+          </select>
+        </div>
+        
+        <div className="flex gap-3 pt-4">
+          <Button 
+            onClick={onSave}
+            className="flex-1"
+          >
+            {isEdit ? t.save : t.create}
+          </Button>
+        </div>
+      </div>
+    </DialogContent>
+  );
+}
 
 export default SchoolManagement;
