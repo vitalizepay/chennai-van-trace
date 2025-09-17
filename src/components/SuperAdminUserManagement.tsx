@@ -424,8 +424,6 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
     }
   };
 
-  };
-
   const confirmDelete = (user: AdminUser) => {
     setUserToDelete(user);
     setShowDeleteDialog(true);
