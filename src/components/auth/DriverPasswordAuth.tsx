@@ -32,7 +32,7 @@ const DriverPasswordAuth = ({ userType, onSuccess }: DriverPasswordAuthProps) =>
     }
 
     setLoading(true);
-    const { error } = await signInWithMobilePassword(mobile, password);
+    const { error } = await signInWithMobilePassword(mobile, password, 'driver');
     
     if (error) {
       toast({
@@ -209,7 +209,7 @@ const DriverPasswordAuth = ({ userType, onSuccess }: DriverPasswordAuthProps) =>
                 if (result.success && result.user) {
                   toast({
                     title: "Account Found",
-                    description: `Account found for: ${result.user.full_name} (${result.user.email})`,
+                    description: `Account found: ${result.user.full_name} (Mobile: ${result.user.mobile})`,
                   });
                 } else {
                   toast({

@@ -18,7 +18,7 @@ interface AuthContextType {
   // New OTP-based authentication methods
   sendOtp: (mobile: string) => Promise<{ error: any; success?: boolean }>;
   verifyOtp: (mobile: string, otp: string) => Promise<{ error: any; user?: User }>;
-  signInWithMobilePassword: (mobile: string, password: string) => Promise<{ error: any }>;
+  signInWithMobilePassword: (mobile: string, password: string, intendedRole?: 'admin' | 'driver' | 'parent' | 'super_admin') => Promise<{ error: any }>;
   resetPassword: (mobile: string) => Promise<{ success: boolean; tempPassword?: string; message?: string; error?: string }>;
   getUserByMobile: (mobile: string) => Promise<{ success: boolean; user?: any; message?: string; error?: string }>;
   checkDeviceSession: () => Promise<boolean>;
@@ -47,7 +47,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [needsPasswordChange, setNeedsPasswordChange] = useState(false);
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (userId: string, intendedRole?: 'admin' | 'driver' | 'parent' | 'super_admin') => {
     try {
       // Fetch user profile
       const { data: profile } = await supabase
@@ -58,16 +58,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       setUserProfile(profile);
 
-      // Fetch user role (get the first role if multiple exist)
-      const { data: roleData } = await supabase
+      // Fetch user roles
+      const { data: allRoles } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', userId)
-        .order('assigned_at', { ascending: true })
-        .limit(1)
-        .single();
+        .eq('user_id', userId);
 
-      setUserRole(roleData?.role || null);
+      if (allRoles && allRoles.length > 0) {
+        // If intended role is specified and user has that role, use it
+        if (intendedRole && allRoles.some(r => r.role === intendedRole)) {
+          setUserRole(intendedRole);
+        } else {
+          // Otherwise use priority: super_admin > admin > driver > parent
+          const rolePriority = ['super_admin', 'admin', 'driver', 'parent'] as const;
+          const userRoles = allRoles.map(r => r.role);
+          const selectedRole = rolePriority.find(role => userRoles.includes(role)) || userRoles[0];
+          setUserRole(selectedRole);
+        }
+      } else {
+        setUserRole(null);
+      }
 
       // Log activity
       await supabase.from('user_activity_logs').insert({
@@ -259,7 +269,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signInWithMobilePassword = async (mobile: string, password: string) => {
+  const signInWithMobilePassword = async (mobile: string, password: string, intendedRole?: 'admin' | 'driver' | 'parent' | 'super_admin') => {
     try {
       console.log('Looking for user with mobile:', mobile);
       
@@ -294,6 +304,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         // Create device session for auto-login
         await createDeviceSession(profile.user_id);
+        
+        // Fetch profile with intended role
+        await fetchUserProfile(data.user.id, intendedRole);
         
         // Wait a bit for state to propagate
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -362,8 +375,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       return { 
         success: true, 
-        user: users[0],
-        message: `Account found for ${users[0].full_name}`
+        user: { 
+          full_name: users[0].full_name,
+          mobile: users[0].mobile
+        },
+        message: `Account found: ${users[0].full_name} (Mobile: ${users[0].mobile})`
       };
     } catch (error: any) {
       console.error('getUserByMobile error:', error);

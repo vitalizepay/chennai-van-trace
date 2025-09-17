@@ -40,7 +40,7 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
 
     setLoading(true);
     try {
-      const { error } = await signInWithMobilePassword(mobile, password);
+      const { error } = await signInWithMobilePassword(mobile, password, 'parent');
       if (error) {
         toast({
           title: "Login Failed",
@@ -235,7 +235,7 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
               if (result.success && result.user) {
                 toast({
                   title: "Account Found",
-                  description: `Your account: ${result.user.full_name} (${result.user.email})`,
+                  description: `Your account: ${result.user.full_name} (Mobile: ${result.user.mobile})`,
                 });
               } else {
                 toast({
