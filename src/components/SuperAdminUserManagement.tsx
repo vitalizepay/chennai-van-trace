@@ -28,7 +28,9 @@ import {
   School,
   Key,
   Plus,
-  Building
+  Building,
+  AlertTriangle,
+  Trash2
 } from "lucide-react";
 
 interface School {
@@ -65,6 +67,8 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
   const [passwordInfo, setPasswordInfo] = useState<{password: string, userName: string, userEmail: string} | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -420,6 +424,40 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
     }
   };
 
+  };
+
+  const confirmDelete = (user: AdminUser) => {
+    setUserToDelete(user);
+    setShowDeleteDialog(true);
+  };
+
+  const deleteUser = async () => {
+    if (!userToDelete) return;
+
+    try {
+      // Use the admin client to delete the user
+      const { error } = await supabase.auth.admin.deleteUser(userToDelete.user_id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `User ${userToDelete.full_name} has been deleted successfully`,
+      });
+
+      setShowDeleteDialog(false);
+      setUserToDelete(null);
+      fetchAdminUsers();
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete user",
+        variant: "destructive",
+      });
+    }
+  };
+
   const updateUserStatus = async (userId: string, newStatus: 'pending' | 'approved' | 'rejected' | 'suspended') => {
     try {
       const { error } = await supabase
@@ -633,6 +671,15 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
                     >
                       🔑
                     </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => confirmDelete(user)}
+                      title="Delete User"
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -769,6 +816,53 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
                 className="flex-1"
               >
                 Close
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Confirm Delete
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-destructive/10 p-4 rounded-md">
+              <p className="text-sm">
+                Are you sure you want to delete this user? This action cannot be undone.
+              </p>
+              {userToDelete && (
+                <div className="mt-3 space-y-1 text-sm">
+                  <div><strong>Name:</strong> {userToDelete.full_name}</div>
+                  <div><strong>Email:</strong> {userToDelete.email}</div>
+                  <div><strong>Role:</strong> {userToDelete.role}</div>
+                  {userToDelete.school_name && (
+                    <div><strong>School:</strong> {userToDelete.school_name}</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowDeleteDialog(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive"
+                onClick={deleteUser}
+                className="flex-1"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete User
               </Button>
             </div>
           </div>
