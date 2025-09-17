@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import ParentDashboard from "@/components/ParentDashboard";
 import DriverDashboard from "@/components/DriverDashboard";
 import AdminDashboard from "@/components/AdminDashboard";
+import SuperAdminDashboard from "@/components/SuperAdminDashboard";
 
 type UserRole = "parent" | "driver" | "admin" | "super_admin" | null;
 
@@ -41,7 +42,8 @@ const Index = () => {
       <div className="min-h-screen bg-background">
         {userRole === "parent" && <ParentDashboard language={language} onBack={() => setCurrentRole(null)} />}
         {userRole === "driver" && <DriverDashboard language={language} onBack={() => setCurrentRole(null)} />}
-        {(userRole === "admin" || userRole === "super_admin") && <AdminDashboard language={language} onBack={() => setCurrentRole(null)} />}
+        {userRole === "admin" && <AdminDashboard language={language} onBack={() => setCurrentRole(null)} />}
+        {userRole === "super_admin" && <SuperAdminDashboard language={language} onBack={() => setCurrentRole(null)} />}
       </div>
     );
   }
@@ -99,7 +101,8 @@ const Index = () => {
       <div className="min-h-screen bg-background">
         {currentRole === "parent" && <ParentDashboard language={language} onBack={() => setCurrentRole(null)} />}
         {currentRole === "driver" && <DriverDashboard language={language} onBack={() => setCurrentRole(null)} />}
-        {(currentRole === "admin" || currentRole === "super_admin") && <AdminDashboard language={language} onBack={() => setCurrentRole(null)} />}
+        {currentRole === "admin" && <AdminDashboard language={language} onBack={() => setCurrentRole(null)} />}
+        {currentRole === "super_admin" && <SuperAdminDashboard language={language} onBack={() => setCurrentRole(null)} />}
       </div>
     );
   }
