@@ -34,9 +34,7 @@ interface School {
   id: string;
   name: string;
   location: string;
-  totalVans: number;
-  activeVans: number;
-  totalStudents: number;
+  address: string;
   status: "active" | "inactive";
 }
 
@@ -47,11 +45,11 @@ interface AdminUser {
   mobile: string;
   status: 'pending' | 'approved' | 'rejected' | 'suspended';
   created_at: string;
-  role: string | null;
+  role: string;
   school_id?: string;
   school_name?: string;
+  school_location?: string;
   activity_logs?: any[];
-  total_users_managed?: number;
 }
 
 interface SuperAdminUserManagementProps {
@@ -60,6 +58,7 @@ interface SuperAdminUserManagementProps {
 
 const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) => {
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -68,22 +67,12 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
   const [schoolFilter, setSchoolFilter] = useState<string>("all");
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   
-  const [newAdmin, setNewAdmin] = useState({
+  const [formData, setFormData] = useState({
     email: '',
-    fullName: '',
+    full_name: '',
     mobile: '',
-    password: '',
-    schoolId: '',
-    schoolName: ''
+    school_id: ''
   });
-
-  // Sample schools data - in real app this would come from database
-  const [schools] = useState<School[]>([
-    { id: "1", name: "St. Mary's High School", location: "Chennai Central", totalVans: 4, activeVans: 3, totalStudents: 150, status: "active" },
-    { id: "2", name: "Gandhi Memorial School", location: "T. Nagar", totalVans: 6, activeVans: 5, totalStudents: 220, status: "active" },
-    { id: "3", name: "Modern Public School", location: "Anna Nagar", totalVans: 3, activeVans: 2, totalStudents: 90, status: "active" },
-    { id: "4", name: "Sacred Heart School", location: "Velachery", totalVans: 5, activeVans: 4, totalStudents: 180, status: "active" },
-  ]);
 
   const texts = {
     en: {
@@ -116,21 +105,18 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
       phone: "Phone",
       email: "Email",
       fullName: "Full Name",
-      password: "Password (Temporary)",
       school: "Assigned School",
       selectSchool: "Select School",
-      usersManaged: "Users Managed",
       createAdminTitle: "Create School Administrator",
-      createAdminDesc: "Create a new administrator for a specific school. They will be able to manage parents and drivers for their school.",
+      createAdminDesc: "Create a new administrator and assign them to a specific school.",
       basicInfo: "Basic Information",
       schoolAssignment: "School Assignment",
       cancel: "Cancel",
       create: "Create Administrator",
       adminCreated: "Administrator created successfully",
-      resetPassword: "Reset Password",
-      manageUsers: "Manage Users",
       hierarchy: "User Hierarchy",
-      hierarchyDesc: "Super Admin → School Admin → Parents & Drivers"
+      hierarchyDesc: "Super Admin → School Admin → Parents & Drivers",
+      unassigned: "Unassigned"
     },
     ta: {
       title: "நிர்வாக பயனர் மேலாண்மை",
@@ -162,92 +148,96 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
       phone: "தொலைபேசி",
       email: "மின்னஞ்சல்",
       fullName: "முழு பெயர்",
-      password: "கடவுச்சொல் (தற்காலிக)",
       school: "ஒதுக்கப்பட்ட பள்ளி",
       selectSchool: "பள்ளியைத் தேர்ந்தெடுக்கவும்",
-      usersManaged: "நிர்வகிக்கப்படும் பயனர்கள்",
       createAdminTitle: "பள்ளி நிர்வாகியை உருவாக்கவும்",
-      createAdminDesc: "குறிப்பிட்ட பள்ளிக்கு புதிய நிர்வாகியை உருவாக்கவும். அவர்கள் தங்கள் பள்ளிக்கான பெற்றோர்கள் மற்றும் ஓட்டுநர்களை நிர்வகிக்க முடியும்.",
+      createAdminDesc: "புதிய நிர்வாகியை உருவாக்கி குறிப்பிட்ட பள்ளிக்கு ஒதுக்கவும்.",
       basicInfo: "அடிப்படை தகவல்",
       schoolAssignment: "பள்ளி ஒதுக்கீடு",
       cancel: "ரத்து செய்",
       create: "நிர்வாகியை உருவாக்கவும்",
       adminCreated: "நிர்வாகி வெற்றிகரமாக உருவாக்கப்பட்டது",
-      resetPassword: "கடவுச்சொல்லை மீட்டமை",
-      manageUsers: "பயனர்களை நிர்வகிக்கவும்",
       hierarchy: "பயனர் படிநிலை",
-      hierarchyDesc: "சூப்பர் நிர்வாகி → பள்ளி நிர்வாகி → பெற்றோர்கள் & ஓட்டுநர்கள்"
+      hierarchyDesc: "சூப்பர் நிர்வாகி → பள்ளி நிர்வாகி → பெற்றோர்கள் & ஓட்டுநர்கள்",
+      unassigned: "ஒதுக்கப்படவில்லை"
     }
   };
 
   const t = texts[language];
 
   useEffect(() => {
-    fetchAdminUsers();
+    fetchData();
   }, []);
 
   useEffect(() => {
     filterUsers();
   }, [adminUsers, searchTerm, statusFilter, schoolFilter]);
 
+  const fetchData = async () => {
+    await Promise.all([fetchAdminUsers(), fetchSchools()]);
+  };
+
+  const fetchSchools = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('schools')
+        .select('id, name, location, address, status')
+        .eq('status', 'active')
+        .order('name');
+
+      if (error) throw error;
+      setSchools((data || []) as School[]);
+    } catch (error: any) {
+      console.error('Error fetching schools:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch schools",
+        variant: "destructive",
+      });
+    }
+  };
+
   const fetchAdminUsers = async () => {
     try {
       setLoading(true);
       
-      // Fetch all profiles with admin role
-      const { data: profilesData, error: profilesError } = await supabase
+      // Fetch admin users with their school assignments
+      const { data, error } = await supabase
         .from('profiles')
-        .select('user_id, email, full_name, mobile, status, created_at');
+        .select(`
+          user_id, 
+          email, 
+          full_name, 
+          mobile, 
+          status, 
+          created_at,
+          user_roles!inner(
+            role,
+            school_id,
+            schools(name, location)
+          )
+        `)
+        .eq('user_roles.role', 'admin')
+        .order('created_at', { ascending: false });
 
-      if (profilesError) throw profilesError;
+      if (error) throw error;
 
-      // Fetch only admin roles
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-        .eq('role', 'admin');
-
-      if (rolesError) throw rolesError;
-
-      // Fetch activity logs for admin users
-      const adminUserIds = rolesData?.map(role => role.user_id) || [];
-      let activityData = [];
-      
-      if (adminUserIds.length > 0) {
-        const { data: activityResult, error: activityError } = await supabase
-          .from('user_activity_logs')
-          .select('user_id, action, created_at, details')
-          .in('user_id', adminUserIds)
-          .order('created_at', { ascending: false });
-
-        if (activityError) throw activityError;
-        activityData = activityResult || [];
-      }
-
-      // Combine data and add mock school assignments
-      const formattedUsers = profilesData?.filter((profile: any) => 
-        rolesData?.some(role => role.user_id === profile.user_id)
-      ).map((profile: any, index: number) => {
-        const activityLogs = activityData?.filter(log => log.user_id === profile.user_id) || [];
-        const assignedSchool = schools[index % schools.length]; // Mock assignment
-        
-        return {
-          user_id: profile.user_id,
-          email: profile.email,
-          full_name: profile.full_name,
-          mobile: profile.mobile,
-          status: profile.status,
-          created_at: profile.created_at,
-          role: 'admin',
-          school_id: assignedSchool.id,
-          school_name: assignedSchool.name,
-          activity_logs: activityLogs,
-          total_users_managed: Math.floor(Math.random() * 50) + 10 // Mock data
-        };
-      }) || [];
+      const formattedUsers = (data || []).map((profile: any) => ({
+        user_id: profile.user_id,
+        email: profile.email,
+        full_name: profile.full_name,
+        mobile: profile.mobile,
+        status: profile.status,
+        created_at: profile.created_at,
+        role: profile.user_roles[0]?.role || 'admin',
+        school_id: profile.user_roles[0]?.school_id,
+        school_name: profile.user_roles[0]?.schools?.name || t.unassigned,
+        school_location: profile.user_roles[0]?.schools?.location || '',
+        activity_logs: []
+      }));
 
       setAdminUsers(formattedUsers);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching admin users:', error);
       toast({
         title: "Error",
@@ -281,6 +271,53 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
     setFilteredUsers(filtered);
   };
 
+  const resetForm = () => {
+    setFormData({
+      email: '',
+      full_name: '',
+      mobile: '',
+      school_id: ''
+    });
+  };
+
+  const handleCreate = async () => {
+    try {
+      if (!formData.email || !formData.mobile || !formData.full_name) {
+        toast({
+          title: "Error",
+          description: "Please fill in all required fields",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.rpc('create_admin_user', {
+        _email: formData.email,
+        _mobile: formData.mobile,
+        _full_name: formData.full_name,
+        _school_id: formData.school_id || null
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Admin user ${formData.full_name} has been created successfully`,
+      });
+
+      setShowCreateDialog(false);
+      resetForm();
+      fetchAdminUsers();
+    } catch (error: any) {
+      console.error('Error creating admin:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create admin user",
+        variant: "destructive",
+      });
+    }
+  };
+
   const updateUserStatus = async (userId: string, newStatus: 'pending' | 'approved' | 'rejected' | 'suspended') => {
     try {
       const { error } = await supabase
@@ -290,113 +327,17 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
 
       if (error) throw error;
 
-      // Log the action
-      await supabase.from('user_activity_logs').insert({
-        user_id: userId,
-        action: `status_changed_to_${newStatus}`,
-        details: { 
-          changed_at: new Date().toISOString(),
-          changed_by: 'super_admin' 
-        }
-      });
-
       await fetchAdminUsers();
       
       toast({
         title: "Status Updated",
         description: `Administrator status changed to ${newStatus}`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating user status:', error);
       toast({
         title: "Error",
         description: "Failed to update administrator status",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const resetPassword = async (userId: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('reset-user-password', {
-        body: { userId }
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        toast({
-          title: "Password Reset Successful",
-          description: `Temporary password: ${data.tempPassword}`,
-          duration: 10000,
-        });
-        
-        await fetchAdminUsers();
-      }
-    } catch (error: any) {
-      console.error('Error resetting password:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to reset password",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const createAdmin = async () => {
-    try {
-      if (!newAdmin.email || !newAdmin.fullName || !newAdmin.mobile || !newAdmin.password || !newAdmin.schoolId) {
-        toast({
-          title: "Missing Information",
-          description: "Please fill in all required fields",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Get current user for created_by field
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      
-      // Call edge function to create admin user with super admin privileges
-      const { data, error } = await supabase.functions.invoke('create-user', {
-        body: {
-          userData: {
-            email: newAdmin.email,
-            fullName: newAdmin.fullName,
-            mobile: newAdmin.mobile,
-            password: newAdmin.password,
-            role: 'admin',
-            schoolId: newAdmin.schoolId,
-            createdBy: currentUser?.id
-          }
-        }
-      });
-
-      if (error) throw error;
-
-      // Reset form
-      setNewAdmin({
-        email: '',
-        fullName: '',
-        mobile: '',
-        password: '',
-        schoolId: '',
-        schoolName: ''
-      });
-
-      setShowCreateDialog(false);
-      await fetchAdminUsers();
-
-      toast({
-        title: t.adminCreated,
-        description: `Administrator for ${newAdmin.schoolName} created successfully`,
-      });
-
-    } catch (error: any) {
-      console.error('Error creating admin:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create administrator",
         variant: "destructive",
       });
     }
@@ -435,6 +376,22 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
         </CardContent>
       </Card>
 
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Users className="h-6 w-6 text-primary" />
+          <h2 className="text-2xl font-bold">{t.title}</h2>
+        </div>
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogTrigger asChild>
+            <Button className="gap-2" onClick={resetForm}>
+              <Plus className="h-4 w-4" />
+              {t.createAdmin}
+            </Button>
+          </DialogTrigger>
+        </Dialog>
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-4">
         <Card>
@@ -470,11 +427,8 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
           
           <div className="flex gap-4">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="flex-1">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4" />
-                  <SelectValue placeholder={t.filterByStatus} />
-                </div>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder={t.filterByStatus} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t.allStatuses}</SelectItem>
@@ -486,11 +440,8 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
             </Select>
 
             <Select value={schoolFilter} onValueChange={setSchoolFilter}>
-              <SelectTrigger className="flex-1">
-                <div className="flex items-center gap-2">
-                  <School className="h-4 w-4" />
-                  <SelectValue placeholder={t.filterBySchool} />
-                </div>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder={t.filterBySchool} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t.allSchools}</SelectItem>
@@ -505,229 +456,74 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
         </CardContent>
       </Card>
 
-      {/* Admin List */}
+      {/* Admin Users List */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              {t.schoolAdmins}
-            </CardTitle>
-            <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              {t.createAdmin}
-            </Button>
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            {t.schoolAdmins}
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent>
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
             </div>
           ) : filteredUsers.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {t.noUsers}
+              <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p>{t.noUsers}</p>
             </div>
           ) : (
             filteredUsers.map((user) => (
-              <div key={user.user_id} className="flex items-center justify-between p-4 bg-accent/50 rounded-lg">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <Shield className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium">{user.full_name}</h4>
-                      <p className="text-sm text-muted-foreground">{user.school_name}</p>
-                    </div>
-                    <Badge className={getStatusColor(user.status)}>
-                      {t[user.status as keyof typeof t] || user.status}
-                    </Badge>
+              <div key={user.user_id} className="flex items-center justify-between p-4 border-b last:border-0">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Users className="h-5 w-5 text-primary" />
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground ml-13">
-                    <div className="flex items-center gap-1">
+                  <div>
+                    <h3 className="font-medium">{user.full_name}</h3>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Mail className="h-3 w-3" />
                       {user.email}
                     </div>
-                    {user.mobile && (
-                      <div className="flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        {user.mobile}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      {user.total_users_managed} users
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Phone className="h-3 w-3" />
+                      {user.mobile}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Building className="h-3 w-3" />
+                      {user.school_name}
+                      {user.school_location && ` (${user.school_location})`}
                     </div>
                   </div>
                 </div>
-
                 <div className="flex items-center gap-2">
-                  {user.status === 'pending' && (
-                    <>
-                      <Button 
-                        size="sm" 
-                        className="gap-1"
-                        onClick={() => updateUserStatus(user.user_id, 'approved')}
-                      >
-                        <Check className="h-3 w-3" />
-                        {t.approve}
+                  <Badge className={getStatusColor(user.status)}>
+                    {t[user.status as keyof typeof t]}
+                  </Badge>
+                  <div className="flex gap-1">
+                    {user.status === 'pending' && (
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => updateUserStatus(user.user_id, 'approved')}>
+                          <Check className="h-3 w-3" />
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => updateUserStatus(user.user_id, 'rejected')}>
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </>
+                    )}
+                    {user.status === 'approved' && (
+                      <Button size="sm" variant="outline" onClick={() => updateUserStatus(user.user_id, 'suspended')}>
+                        <UserX className="h-3 w-3" />
                       </Button>
-                      <Button 
-                        size="sm" 
-                        variant="destructive" 
-                        className="gap-1"
-                        onClick={() => updateUserStatus(user.user_id, 'rejected')}
-                      >
-                        <X className="h-3 w-3" />
-                        {t.reject}
+                    )}
+                    {user.status === 'suspended' && (
+                      <Button size="sm" variant="outline" onClick={() => updateUserStatus(user.user_id, 'approved')}>
+                        <UserCheck className="h-3 w-3" />
                       </Button>
-                    </>
-                  )}
-
-                  {user.status === 'approved' && (
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="gap-1"
-                      onClick={() => updateUserStatus(user.user_id, 'suspended')}
-                    >
-                      <UserX className="h-3 w-3" />
-                      {t.suspend}
-                    </Button>
-                  )}
-
-                  {user.status === 'suspended' && (
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="gap-1"
-                      onClick={() => updateUserStatus(user.user_id, 'approved')}
-                    >
-                      <UserCheck className="h-3 w-3" />
-                      {t.activate}
-                    </Button>
-                  )}
-
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="gap-1"
-                        onClick={() => setSelectedUser(user)}
-                      >
-                        <Eye className="h-3 w-3" />
-                        {t.viewDetails}
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>{t.userDetails}</DialogTitle>
-                      </DialogHeader>
-                      
-                      {selectedUser && (
-                        <Tabs defaultValue="personal" className="w-full">
-                          <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="personal">{t.personalInfo}</TabsTrigger>
-                            <TabsTrigger value="school">{t.schoolInfo}</TabsTrigger>
-                            <TabsTrigger value="activity">{t.activityLog}</TabsTrigger>
-                          </TabsList>
-
-                          <TabsContent value="personal" className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <Label className="text-sm font-medium">Name</Label>
-                                <p className="text-sm text-muted-foreground">{selectedUser.full_name}</p>
-                              </div>
-                              <div>
-                                <Label className="text-sm font-medium">Email</Label>
-                                <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
-                              </div>
-                              <div>
-                                <Label className="text-sm font-medium">{t.phone}</Label>
-                                <p className="text-sm text-muted-foreground">{selectedUser.mobile || 'Not provided'}</p>
-                              </div>
-                              <div>
-                                <Label className="text-sm font-medium">Status</Label>
-                                <Badge className={getStatusColor(selectedUser.status)}>
-                                  {selectedUser.status}
-                                </Badge>
-                              </div>
-                              <div>
-                                <Label className="text-sm font-medium">{t.registeredOn}</Label>
-                                <p className="text-sm text-muted-foreground">
-                                  {new Date(selectedUser.created_at).toLocaleDateString()}
-                                </p>
-                              </div>
-                              <div>
-                                <Label className="text-sm font-medium">{t.usersManaged}</Label>
-                                <p className="text-sm text-muted-foreground">{selectedUser.total_users_managed}</p>
-                              </div>
-                            </div>
-                            
-                            <div className="pt-4 border-t">
-                              <Label className="text-sm font-medium">Actions</Label>
-                              <div className="mt-2 flex gap-2">
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  onClick={() => resetPassword(selectedUser.user_id)}
-                                  className="gap-1"
-                                >
-                                  <Key className="h-3 w-3" />
-                                  {t.resetPassword}
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  className="gap-1"
-                                >
-                                  <Users className="h-3 w-3" />
-                                  {t.manageUsers}
-                                </Button>
-                              </div>
-                            </div>
-                          </TabsContent>
-
-                          <TabsContent value="school" className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <Label className="text-sm font-medium">School Name</Label>
-                                <p className="text-sm text-muted-foreground">{selectedUser.school_name}</p>
-                              </div>
-                              <div>
-                                <Label className="text-sm font-medium">School ID</Label>
-                                <p className="text-sm text-muted-foreground">{selectedUser.school_id}</p>
-                              </div>
-                            </div>
-                          </TabsContent>
-
-                          <TabsContent value="activity" className="space-y-4">
-                            <div className="space-y-2">
-                              {selectedUser.activity_logs && selectedUser.activity_logs.length > 0 ? (
-                                selectedUser.activity_logs.slice(0, 10).map((log: any, index: number) => (
-                                  <div key={index} className="flex items-start gap-3 p-3 bg-accent/50 rounded-lg">
-                                    <Activity className="h-4 w-4 text-primary mt-0.5" />
-                                    <div className="flex-1">
-                                      <p className="text-sm font-medium capitalize">{log.action.replace(/_/g, ' ')}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {new Date(log.created_at).toLocaleString()}
-                                      </p>
-                                    </div>
-                                  </div>
-                                ))
-                              ) : (
-                                <p className="text-sm text-muted-foreground text-center py-4">
-                                  No activity recorded
-                                </p>
-                              )}
-                            </div>
-                          </TabsContent>
-                        </Tabs>
-                      )}
-                    </DialogContent>
-                  </Dialog>
+                    )}
+                  </div>
                 </div>
               </div>
             ))
@@ -737,7 +533,7 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
 
       {/* Create Admin Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
@@ -753,44 +549,32 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">{t.email}</Label>
+                  <Label className="text-sm font-medium">{t.email} *</Label>
                   <Input
                     type="email"
-                    value={newAdmin.email}
-                    onChange={(e) => setNewAdmin({...newAdmin, email: e.target.value})}
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
                     placeholder="admin@school.com"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">{t.fullName}</Label>
+                  <Label className="text-sm font-medium">{t.fullName} *</Label>
                   <Input
-                    value={newAdmin.fullName}
-                    onChange={(e) => setNewAdmin({...newAdmin, fullName: e.target.value})}
+                    value={formData.full_name}
+                    onChange={(e) => setFormData({...formData, full_name: e.target.value})}
                     placeholder="John Doe"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">{t.phone}</Label>
-                  <Input
-                    value={newAdmin.mobile}
-                    onChange={(e) => setNewAdmin({...newAdmin, mobile: e.target.value})}
-                    placeholder="+919876543210"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">{t.password}</Label>
-                  <Input
-                    type="password"
-                    value={newAdmin.password}
-                    onChange={(e) => setNewAdmin({...newAdmin, password: e.target.value})}
-                    placeholder="Temporary password"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">{t.phone} *</Label>
+                <Input
+                  value={formData.mobile}
+                  onChange={(e) => setFormData({...formData, mobile: e.target.value})}
+                  placeholder="+919876543210"
+                />
               </div>
             </div>
 
@@ -801,20 +585,14 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
               <div className="space-y-2">
                 <Label className="text-sm font-medium">{t.school}</Label>
                 <Select 
-                  value={newAdmin.schoolId} 
-                  onValueChange={(value) => {
-                    const school = schools.find(s => s.id === value);
-                    setNewAdmin({
-                      ...newAdmin, 
-                      schoolId: value,
-                      schoolName: school?.name || ''
-                    });
-                  }}
+                  value={formData.school_id} 
+                  onValueChange={(value) => setFormData({...formData, school_id: value})}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={t.selectSchool} />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="">No School Assignment</SelectItem>
                     {schools.map((school) => (
                       <SelectItem key={school.id} value={school.id}>
                         <div className="flex items-center gap-2">
@@ -835,7 +613,7 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
               <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
                 {t.cancel}
               </Button>
-              <Button onClick={createAdmin}>
+              <Button onClick={handleCreate}>
                 {t.create}
               </Button>
             </div>

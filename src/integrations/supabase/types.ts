@@ -352,7 +352,14 @@ export type Database = {
         Returns: undefined
       }
       create_admin_user: {
-        Args: { _email: string; _full_name: string; _mobile: string }
+        Args:
+          | { _email: string; _full_name: string; _mobile: string }
+          | {
+              _email: string
+              _full_name: string
+              _mobile: string
+              _school_id?: string
+            }
         Returns: string
       }
       create_super_admin_user: {
