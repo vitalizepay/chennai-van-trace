@@ -253,15 +253,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signInWithMobilePassword = async (mobile: string, password: string) => {
     try {
+      console.log('Looking for user with mobile:', mobile);
+      
       // Find user by mobile
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('email, user_id')
         .eq('mobile', mobile)
-        .single();
+        .maybeSingle();
+
+      console.log('Profile query result:', { profile, profileError });
 
       if (!profile) {
-        throw new Error('User not found');
+        throw new Error('User not found with this mobile number');
       }
 
       // Sign in with email/password
