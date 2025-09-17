@@ -66,8 +66,9 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
   };
 
   const handleForgotPassword = async () => {
-    console.log('handleForgotPassword called, mobile:', mobile);
+    console.log('🔄 Parent handleForgotPassword called, mobile:', mobile);
     if (!mobile?.trim()) {
+      console.log('❌ No mobile number provided');
       toast({
         title: "Enter Mobile Number",
         description: "Please enter your mobile number first to reset password",
@@ -78,7 +79,9 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
 
     // Clean mobile number - remove +91 prefix if present and validate
     const cleanMobile = mobile.replace(/^\+91/, '').replace(/\D/g, '');
+    console.log('🔧 Cleaned mobile number:', cleanMobile);
     if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
+      console.log('❌ Invalid mobile number format');
       toast({
         title: "Invalid Mobile Number",
         description: "Please enter a valid 10-digit mobile number starting with 6-9",
@@ -89,10 +92,11 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
 
     setLoading(true);
     try {
-      console.log('Calling resetPassword with cleaned mobile:', cleanMobile);
+      console.log('📞 Calling resetPassword with cleaned mobile:', cleanMobile);
       const result = await resetPassword(cleanMobile);
-      console.log('resetPassword result:', result);
+      console.log('📋 Parent resetPassword result:', result);
       if (result.success && result.tempPassword) {
+        console.log('✅ Password reset successful, showing toast');
         toast({
           title: "Password Reset Successful",
           description: `Your temporary password is: ${result.tempPassword}. Please use this to login and change your password.`,
@@ -110,6 +114,7 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
           ),
         });
       } else {
+        console.log('❌ Password reset failed:', result.error);
         toast({
           title: "Reset Failed", 
           description: result.error || "Could not reset password. Please check your mobile number.",
@@ -117,7 +122,7 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
         });
       }
     } catch (error) {
-      console.error('handleForgotPassword error:', error);
+      console.error('💥 handleForgotPassword error:', error);
       toast({
         title: "Reset Error",
         description: "An unexpected error occurred while resetting password",
@@ -206,56 +211,61 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
         <Button
           type="button"
           variant="link"
-          onClick={async () => {
-            console.log('Forgot Username clicked, mobile:', mobile);
-            if (!mobile?.trim()) {
-              toast({
-                title: "Enter Mobile Number", 
-                description: "Please enter your mobile number first",
-                variant: "destructive",
-              });
-              return;
-            }
-
-            // Clean mobile number
-            const cleanMobile = mobile.replace(/^\+91/, '').replace(/\D/g, '');
-            if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
-              toast({
-                title: "Invalid Mobile Number",
-                description: "Please enter a valid 10-digit mobile number starting with 6-9",
-                variant: "destructive",
-              });
-              return;
-            }
-
-            setLoading(true);
-            try {
-              console.log('Calling getUserByMobile with cleaned mobile:', cleanMobile);
-              const result = await getUserByMobile(cleanMobile);
-              console.log('getUserByMobile result:', result);
-              if (result.success && result.user) {
+            onClick={async () => {
+              console.log('🔄 Parent Forgot Username clicked, mobile:', mobile);
+              if (!mobile?.trim()) {
+                console.log('❌ No mobile number provided for username lookup');
                 toast({
-                  title: "Account Found",
-                  description: `Your account: ${result.user.full_name} (Mobile: ${result.user.mobile})`,
-                });
-              } else {
-                toast({
-                  title: "No Account Found",
-                  description: result.error || "No account found with this mobile number",
+                  title: "Enter Mobile Number", 
+                  description: "Please enter your mobile number first",
                   variant: "destructive",
                 });
+                return;
               }
-            } catch (error) {
-              console.error('Forgot Username error:', error);
-              toast({
-                title: "Lookup Error",
-                description: "An unexpected error occurred while looking up account",
-                variant: "destructive",
-              });
-            } finally {
-              setLoading(false);
-            }
-          }}
+
+              // Clean mobile number
+              const cleanMobile = mobile.replace(/^\+91/, '').replace(/\D/g, '');
+              console.log('🔧 Cleaned mobile for username lookup:', cleanMobile);
+              if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
+                console.log('❌ Invalid mobile number for username lookup');
+                toast({
+                  title: "Invalid Mobile Number",
+                  description: "Please enter a valid 10-digit mobile number starting with 6-9",
+                  variant: "destructive",
+                });
+                return;
+              }
+
+              setLoading(true);
+              try {
+                console.log('📞 Calling getUserByMobile with cleaned mobile:', cleanMobile);
+                const result = await getUserByMobile(cleanMobile);
+                console.log('📋 Parent getUserByMobile result:', result);
+                if (result.success && result.user) {
+                  console.log('✅ Username lookup successful');
+                  toast({
+                    title: "Account Found",
+                    description: `Your account: ${result.user.full_name} (Mobile: ${result.user.mobile})`,
+                  });
+                } else {
+                  console.log('❌ Username lookup failed:', result.error);
+                  toast({
+                    title: "No Account Found",
+                    description: result.error || "No account found with this mobile number",
+                    variant: "destructive",
+                  });
+                }
+              } catch (error) {
+                console.error('💥 Parent Forgot Username error:', error);
+                toast({
+                  title: "Lookup Error",
+                  description: "An unexpected error occurred while looking up account",
+                  variant: "destructive",
+                });
+              } finally {
+                setLoading(false);
+              }
+            }}
           className="text-sm text-muted-foreground hover:text-foreground"
           disabled={loading}
         >
