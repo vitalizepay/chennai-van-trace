@@ -60,7 +60,7 @@ interface SuperAdminUserManagementProps {
 }
 
 const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) => {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<AdminUser[]>([]);
@@ -209,11 +209,21 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
     try {
       setLoading(true);
       
-      // First, get all users with admin role
+      // Determine which roles to fetch based on current user's role
+      let rolesToFetch: ('admin' | 'super_admin')[] = [];
+      if (userRole === 'super_admin') {
+        // Super admins can see both admin and super_admin users
+        rolesToFetch = ['admin', 'super_admin'];
+      } else {
+        // Regular admins can only see other admin users (not super_admin)
+        rolesToFetch = ['admin'];
+      }
+      
+      // Get users with appropriate roles
       const { data: adminRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id, role, school_id')
-        .eq('role', 'admin');
+        .in('role', rolesToFetch);
 
       if (rolesError) {
         console.error('Error fetching admin roles:', rolesError);
