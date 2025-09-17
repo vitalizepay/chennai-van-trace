@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog, LogOut, School, Building, BookOpen, Zap, Eye, Plus, Search, TrendingUp, UserCheck } from "lucide-react";
+import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog, LogOut, School, Building, Eye, Plus, Search, TrendingUp, UserCheck } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import EnhancedGoogleMap from "./EnhancedGoogleMap";
@@ -538,7 +538,7 @@ const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => 
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5 text-purple-500" />
+                    <Users className="h-5 w-5 text-purple-500" />
                     <div>
                       <p className="text-sm text-muted-foreground">Total Students</p>
                       <p className="text-2xl font-bold">{analytics.totalStudents}</p>
@@ -552,7 +552,7 @@ const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => 
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Zap className="h-4 w-4" />
+                  <TrendingUp className="h-4 w-4" />
                   Recent User Activity
                 </CardTitle>
               </CardHeader>
@@ -583,7 +583,7 @@ const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => 
                   </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
-                    <Zap className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>No recent activity</p>
                   </div>
                 )}
