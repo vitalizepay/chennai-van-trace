@@ -306,10 +306,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const resetPassword = async (mobile: string) => {
+    console.log('resetPassword called with mobile:', mobile);
     try {
       // Find user by mobile number
+      console.log('Calling get_user_for_mobile_login RPC...');
       const { data: users, error: profileError } = await supabase
         .rpc('get_user_for_mobile_login', { _mobile: mobile });
+
+      console.log('RPC result:', { users, profileError });
 
       if (profileError) throw profileError;
       if (!users || users.length === 0) {
@@ -317,11 +321,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       const profile = users[0];
+      console.log('Found profile:', profile);
 
       // Call the reset password edge function
+      console.log('Calling reset-user-password edge function...');
       const { data, error } = await supabase.functions.invoke('reset-user-password', {
         body: { userId: profile.user_id }
       });
+
+      console.log('Edge function result:', { data, error });
 
       if (error) throw error;
 
@@ -331,6 +339,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         message: 'A temporary password has been generated for your account'
       };
     } catch (error: any) {
+      console.error('resetPassword error:', error);
       return { 
         success: false, 
         error: error.message || 'Failed to reset password'
@@ -339,9 +348,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const getUserByMobile = async (mobile: string) => {
+    console.log('getUserByMobile called with mobile:', mobile);
     try {
       const { data: users, error } = await supabase
         .rpc('get_user_for_mobile_login', { _mobile: mobile });
+
+      console.log('getUserByMobile RPC result:', { users, error });
 
       if (error) throw error;
       if (!users || users.length === 0) {
@@ -354,6 +366,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         message: `Account found for ${users[0].full_name}`
       };
     } catch (error: any) {
+      console.error('getUserByMobile error:', error);
       return { 
         success: false, 
         error: error.message || 'No account found'

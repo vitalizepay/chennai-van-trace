@@ -108,6 +108,7 @@ const DriverPasswordAuth = ({ userType, onSuccess }: DriverPasswordAuthProps) =>
             size="sm"
             className="text-primary"
             onClick={async () => {
+              console.log('Forgot Password clicked, mobile:', mobile);
               if (!mobile?.trim()) {
                 toast({
                   title: "Enter Mobile Number",
@@ -119,7 +120,9 @@ const DriverPasswordAuth = ({ userType, onSuccess }: DriverPasswordAuthProps) =>
 
               setLoading(true);
               try {
+                console.log('Calling resetPassword...');
                 const result = await resetPassword(mobile);
+                console.log('resetPassword result:', result);
                 if (result.success && result.tempPassword) {
                   toast({
                     title: "Password Reset Successful",
@@ -133,6 +136,13 @@ const DriverPasswordAuth = ({ userType, onSuccess }: DriverPasswordAuthProps) =>
                     variant: "destructive",
                   });
                 }
+              } catch (error) {
+                console.error('Forgot Password error:', error);
+                toast({
+                  title: "Reset Error",
+                  description: "An unexpected error occurred while resetting password",
+                  variant: "destructive",
+                });
               } finally {
                 setLoading(false);
               }
@@ -148,6 +158,7 @@ const DriverPasswordAuth = ({ userType, onSuccess }: DriverPasswordAuthProps) =>
             size="sm"
             className="text-primary"
             onClick={async () => {
+              console.log('Forgot Username clicked, mobile:', mobile);
               if (!mobile?.trim()) {
                 toast({
                   title: "Enter Mobile Number", 
@@ -159,7 +170,9 @@ const DriverPasswordAuth = ({ userType, onSuccess }: DriverPasswordAuthProps) =>
 
               setLoading(true);
               try {
+                console.log('Calling getUserByMobile...');
                 const result = await getUserByMobile(mobile);
+                console.log('getUserByMobile result:', result);
                 if (result.success && result.user) {
                   toast({
                     title: "Account Found",
@@ -172,6 +185,13 @@ const DriverPasswordAuth = ({ userType, onSuccess }: DriverPasswordAuthProps) =>
                     variant: "destructive",
                   });
                 }
+              } catch (error) {
+                console.error('Forgot Username error:', error);
+                toast({
+                  title: "Lookup Error",
+                  description: "An unexpected error occurred while looking up account",
+                  variant: "destructive",
+                });
               } finally {
                 setLoading(false);
               }

@@ -66,6 +66,7 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
   };
 
   const handleForgotPassword = async () => {
+    console.log('handleForgotPassword called, mobile:', mobile);
     if (!mobile || !/^[6-9]\d{9}$/.test(mobile)) {
       toast({
         title: "Enter Mobile Number",
@@ -77,7 +78,9 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
 
     setLoading(true);
     try {
+      console.log('Calling resetPassword...');
       const result = await resetPassword(mobile);
+      console.log('resetPassword result:', result);
       if (result.success && result.tempPassword) {
         toast({
           title: "Password Reset Successful",
@@ -92,6 +95,7 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
         });
       }
     } catch (error) {
+      console.error('handleForgotPassword error:', error);
       toast({
         title: "Reset Error",
         description: "An unexpected error occurred while resetting password",
