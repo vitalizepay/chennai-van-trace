@@ -67,7 +67,7 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
 
   const handleForgotPassword = async () => {
     console.log('handleForgotPassword called, mobile:', mobile);
-    if (!mobile || !/^[6-9]\d{9}$/.test(mobile)) {
+    if (!mobile?.trim()) {
       toast({
         title: "Enter Mobile Number",
         description: "Please enter your mobile number first to reset password",
@@ -76,21 +76,32 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
       return;
     }
 
+    // Clean mobile number - remove +91 prefix if present and validate
+    const cleanMobile = mobile.replace(/^\+91/, '').replace(/\D/g, '');
+    if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
+      toast({
+        title: "Invalid Mobile Number",
+        description: "Please enter a valid 10-digit mobile number starting with 6-9",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      console.log('Calling resetPassword...');
-      const result = await resetPassword(mobile);
+      console.log('Calling resetPassword with cleaned mobile:', cleanMobile);
+      const result = await resetPassword(cleanMobile);
       console.log('resetPassword result:', result);
       if (result.success && result.tempPassword) {
         toast({
           title: "Password Reset Successful",
           description: `Your temporary password is: ${result.tempPassword}. Please use this to login and change your password.`,
-          duration: 10000,
+          duration: 15000,
         });
       } else {
         toast({
           title: "Reset Failed", 
-          description: result.error || "Could not reset password",
+          description: result.error || "Could not reset password. Please check your mobile number.",
           variant: "destructive",
         });
       }
@@ -185,10 +196,21 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
           variant="link"
           onClick={async () => {
             console.log('Forgot Username clicked, mobile:', mobile);
-            if (!mobile?.trim() || !/^[6-9]\d{9}$/.test(mobile)) {
+            if (!mobile?.trim()) {
               toast({
-                title: "Enter Valid Mobile Number", 
-                description: "Please enter your 10-digit mobile number first",
+                title: "Enter Mobile Number", 
+                description: "Please enter your mobile number first",
+                variant: "destructive",
+              });
+              return;
+            }
+
+            // Clean mobile number
+            const cleanMobile = mobile.replace(/^\+91/, '').replace(/\D/g, '');
+            if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
+              toast({
+                title: "Invalid Mobile Number",
+                description: "Please enter a valid 10-digit mobile number starting with 6-9",
                 variant: "destructive",
               });
               return;
@@ -196,8 +218,8 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
 
             setLoading(true);
             try {
-              console.log('Calling getUserByMobile...');
-              const result = await getUserByMobile(mobile);
+              console.log('Calling getUserByMobile with cleaned mobile:', cleanMobile);
+              const result = await getUserByMobile(cleanMobile);
               console.log('getUserByMobile result:', result);
               if (result.success && result.user) {
                 toast({
