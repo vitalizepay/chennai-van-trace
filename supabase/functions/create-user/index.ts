@@ -47,6 +47,7 @@ serve(async (req) => {
       .from('profiles')
       .update({
         full_name: userData.fullName,
+        mobile: userData.phone,
         phone: userData.phone,
         status: 'approved'
       })
