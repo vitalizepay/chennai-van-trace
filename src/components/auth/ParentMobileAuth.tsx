@@ -201,17 +201,23 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
         <Button
           type="button"
           variant="link"
-          onClick={handleForgotPassword}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleForgotPassword();
+          }}
           className="text-sm text-muted-foreground hover:text-foreground"
           disabled={loading}
         >
           Forgot Password?
         </Button>
         
-        <Button
-          type="button"
-          variant="link"
-            onClick={async () => {
+          <Button
+            type="button"
+            variant="link"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
               console.log('🔄 Parent Forgot Username clicked, mobile:', mobile);
               if (!mobile?.trim()) {
                 console.log('❌ No mobile number provided for username lookup');
@@ -237,40 +243,42 @@ const ParentMobileAuth = ({ onSuccess }: ParentMobileAuthProps) => {
               }
 
               setLoading(true);
-              try {
-                console.log('📞 Calling getUserByMobile with cleaned mobile:', cleanMobile);
-                const result = await getUserByMobile(cleanMobile);
-                console.log('📋 Parent getUserByMobile result:', result);
-                if (result.success && result.user) {
-                  console.log('✅ Username lookup successful');
+              (async () => {
+                try {
+                  console.log('📞 Calling getUserByMobile with cleaned mobile:', cleanMobile);
+                  const result = await getUserByMobile(cleanMobile);
+                  console.log('📋 Parent getUserByMobile result:', result);
+                  if (result.success && result.user) {
+                    console.log('✅ Username lookup successful');
+                    toast({
+                      title: "Account Found",
+                      description: `Your account: ${result.user.full_name} (Mobile: ${result.user.mobile})`,
+                    });
+                  } else {
+                    console.log('❌ Username lookup failed:', result.error);
+                    toast({
+                      title: "No Account Found",
+                      description: result.error || "No account found with this mobile number",
+                      variant: "destructive",
+                    });
+                  }
+                } catch (error) {
+                  console.error('💥 Parent Forgot Username error:', error);
                   toast({
-                    title: "Account Found",
-                    description: `Your account: ${result.user.full_name} (Mobile: ${result.user.mobile})`,
-                  });
-                } else {
-                  console.log('❌ Username lookup failed:', result.error);
-                  toast({
-                    title: "No Account Found",
-                    description: result.error || "No account found with this mobile number",
+                    title: "Lookup Error",
+                    description: "An unexpected error occurred while looking up account",
                     variant: "destructive",
                   });
+                } finally {
+                  setLoading(false);
                 }
-              } catch (error) {
-                console.error('💥 Parent Forgot Username error:', error);
-                toast({
-                  title: "Lookup Error",
-                  description: "An unexpected error occurred while looking up account",
-                  variant: "destructive",
-                });
-              } finally {
-                setLoading(false);
-              }
+              })();
             }}
-          className="text-sm text-muted-foreground hover:text-foreground"
-          disabled={loading}
-        >
-          Forgot Username?
-        </Button>
+            className="text-sm text-muted-foreground hover:text-foreground"
+            disabled={loading}
+          >
+            Forgot Username?
+          </Button>
       </div>
 
       {/* Help Text */}

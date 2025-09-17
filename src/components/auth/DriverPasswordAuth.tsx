@@ -109,7 +109,9 @@ const DriverPasswordAuth = ({ userType, onSuccess }: DriverPasswordAuthProps) =>
             variant="ghost" 
             size="sm"
             className="text-primary"
-            onClick={async () => {
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
               console.log('🔄 Driver Forgot Password clicked, mobile:', mobile);
               if (!mobile?.trim()) {
                 console.log('❌ No mobile number provided');
@@ -135,46 +137,56 @@ const DriverPasswordAuth = ({ userType, onSuccess }: DriverPasswordAuthProps) =>
               }
 
               setLoading(true);
-              try {
-                console.log('📞 Calling resetPassword with cleaned mobile:', cleanMobile);
-                const result = await resetPassword(cleanMobile);
-                console.log('📋 Driver resetPassword result:', result);
-                if (result.success && result.tempPassword) {
-                  console.log('✅ Driver password reset successful');
+              (async () => {
+                try {
+                  console.log('📞 Calling resetPassword with cleaned mobile:', cleanMobile);
+                  const result = await resetPassword(cleanMobile);
+                  console.log('📋 Driver resetPassword result:', result);
+                  if (result.success && result.tempPassword) {
+                    console.log('✅ Driver password reset successful');
+                    toast({
+                      title: "Password Reset Successful",
+                      description: `Your temporary password is: ${result.tempPassword}. Please use this to login.`,
+                      duration: 15000,
+                      action: (
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(result.tempPassword).catch(() => {
+                              // Fallback if clipboard fails
+                              const textArea = document.createElement('textarea');
+                              textArea.value = result.tempPassword;
+                              document.body.appendChild(textArea);
+                              textArea.select();
+                              document.execCommand('copy');
+                              document.body.removeChild(textArea);
+                            });
+                            toast({ title: "Copied!", description: "Password copied to clipboard" });
+                          }}
+                        >
+                          Copy
+                        </Button>
+                      ),
+                    });
+                  } else {
+                    console.log('❌ Driver password reset failed:', result.error);
+                    toast({
+                      title: "Reset Failed",
+                      description: result.error || "Could not reset password. Please check your mobile number.",
+                      variant: "destructive",
+                    });
+                  }
+                } catch (error) {
+                  console.error('💥 Driver Forgot Password error:', error);
                   toast({
-                    title: "Password Reset Successful",
-                    description: `Your temporary password is: ${result.tempPassword}. Please use this to login.`,
-                    duration: 15000,
-                    action: (
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          navigator.clipboard.writeText(result.tempPassword);
-                          toast({ title: "Copied!", description: "Password copied to clipboard" });
-                        }}
-                      >
-                        Copy
-                      </Button>
-                    ),
-                  });
-                } else {
-                  console.log('❌ Driver password reset failed:', result.error);
-                  toast({
-                    title: "Reset Failed",
-                    description: result.error || "Could not reset password. Please check your mobile number.",
+                    title: "Reset Error",
+                    description: "An unexpected error occurred while resetting password",
                     variant: "destructive",
                   });
+                } finally {
+                  setLoading(false);
                 }
-              } catch (error) {
-                console.error('💥 Driver Forgot Password error:', error);
-                toast({
-                  title: "Reset Error",
-                  description: "An unexpected error occurred while resetting password",
-                  variant: "destructive",
-                });
-              } finally {
-                setLoading(false);
-              }
+              })();
             }}
             disabled={loading}
           >
