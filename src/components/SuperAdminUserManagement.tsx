@@ -201,49 +201,88 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
     try {
       setLoading(true);
       
-      // Fetch admin users with their school assignments
-      const { data, error } = await supabase
+      // First, get all users with admin role
+      const { data: adminRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role, school_id')
+        .eq('role', 'admin');
+
+      if (rolesError) {
+        console.error('Error fetching admin roles:', rolesError);
+        throw rolesError;
+      }
+
+      if (!adminRoles || adminRoles.length === 0) {
+        console.log('No admin roles found');
+        setAdminUsers([]);
+        return;
+      }
+
+      // Get user IDs for admin users
+      const adminUserIds = adminRoles.map(role => role.user_id);
+
+      // Fetch profiles for admin users
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          user_id, 
-          email, 
-          full_name, 
-          mobile, 
-          status, 
-          created_at,
-          user_roles!inner(
-            role,
-            school_id,
-            schools(name, location)
-          )
-        `)
-        .eq('user_roles.role', 'admin')
-        .order('created_at', { ascending: false });
+        .select('user_id, email, full_name, mobile, status, created_at')
+        .in('user_id', adminUserIds);
 
-      if (error) throw error;
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
 
-      const formattedUsers = (data || []).map((profile: any) => ({
-        user_id: profile.user_id,
-        email: profile.email,
-        full_name: profile.full_name,
-        mobile: profile.mobile,
-        status: profile.status,
-        created_at: profile.created_at,
-        role: profile.user_roles[0]?.role || 'admin',
-        school_id: profile.user_roles[0]?.school_id,
-        school_name: profile.user_roles[0]?.schools?.name || t.unassigned,
-        school_location: profile.user_roles[0]?.schools?.location || '',
-        activity_logs: []
-      }));
+      // Get school IDs that are assigned to admins
+      const schoolIds = adminRoles
+        .map(role => role.school_id)
+        .filter(id => id !== null);
 
+      // Fetch school details if there are any assigned schools
+      let schoolsData: any[] = [];
+      if (schoolIds.length > 0) {
+        const { data: schools, error: schoolsError } = await supabase
+          .from('schools')
+          .select('id, name, location')
+          .in('id', schoolIds);
+
+        if (schoolsError) {
+          console.error('Error fetching schools:', schoolsError);
+          // Don't throw here, just log and continue without school data
+        } else {
+          schoolsData = schools || [];
+        }
+      }
+
+      // Combine all the data
+      const formattedUsers = (profiles || []).map((profile: any) => {
+        const userRole = adminRoles.find(role => role.user_id === profile.user_id);
+        const school = schoolsData.find(s => s.id === userRole?.school_id);
+
+        return {
+          user_id: profile.user_id,
+          email: profile.email,
+          full_name: profile.full_name,
+          mobile: profile.mobile,
+          status: profile.status,
+          created_at: profile.created_at,
+          role: userRole?.role || 'admin',
+          school_id: userRole?.school_id || null,
+          school_name: school?.name || t.unassigned,
+          school_location: school?.location || '',
+          activity_logs: []
+        };
+      });
+
+      console.log('Formatted admin users:', formattedUsers);
       setAdminUsers(formattedUsers);
     } catch (error: any) {
       console.error('Error fetching admin users:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch administrators",
+        description: error.message || "Failed to fetch administrators",
         variant: "destructive",
       });
+      setAdminUsers([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
