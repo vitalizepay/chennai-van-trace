@@ -9,6 +9,7 @@ interface AuthContextType {
   userProfile: any | null;
   userRole: string | null;
   loading: boolean;
+  needsPasswordChange: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -19,6 +20,7 @@ interface AuthContextType {
   verifyOtp: (mobile: string, otp: string) => Promise<{ error: any; user?: User }>;
   signInWithMobilePassword: (mobile: string, password: string) => Promise<{ error: any }>;
   checkDeviceSession: () => Promise<boolean>;
+  checkTempPassword: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,6 +43,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [userProfile, setUserProfile] = useState<any | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [needsPasswordChange, setNeedsPasswordChange] = useState(false);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -87,10 +90,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Defer profile fetching to avoid blocking auth state change
           setTimeout(() => {
             fetchUserProfile(session.user.id);
+            checkTempPassword();
           }, 0);
         } else {
           setUserProfile(null);
           setUserRole(null);
+          setNeedsPasswordChange(false);
         }
         
         setLoading(false);
@@ -104,6 +109,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (session?.user) {
         fetchUserProfile(session.user.id);
+        checkTempPassword();
       }
       setLoading(false);
     });
@@ -336,12 +342,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const checkTempPassword = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Check if user was created recently (within last 24 hours) or has a flag indicating temp password
+        const createdAt = new Date(user.created_at);
+        const now = new Date();
+        const hoursDiff = (now.getTime() - createdAt.getTime()) / (1000 * 3600);
+        
+        // If account is new or user hasn't updated their password recently, they might need to change it
+        if (hoursDiff < 24) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('updated_at, created_at')
+            .eq('user_id', user.id)
+            .single();
+          
+          if (profile) {
+            const profileCreated = new Date(profile.created_at);
+            const profileUpdated = new Date(profile.updated_at);
+            
+            // If profile hasn't been updated since creation, likely using temp password
+            const updatedRecently = (profileUpdated.getTime() - profileCreated.getTime()) > 60000; // 1 minute
+            setNeedsPasswordChange(!updatedRecently);
+            return !updatedRecently;
+          }
+        }
+      }
+      setNeedsPasswordChange(false);
+      return false;
+    } catch (error) {
+      console.error('Error checking temp password:', error);
+      setNeedsPasswordChange(false);
+      return false;
+    }
+  };
+
   const value = {
     user,
     session,
     userProfile,
     userRole,
     loading,
+    needsPasswordChange,
     signIn,
     signUp,
     signOut,
@@ -349,7 +393,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     sendOtp,
     verifyOtp,
     signInWithMobilePassword,
-    checkDeviceSession
+    checkDeviceSession,
+    checkTempPassword
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

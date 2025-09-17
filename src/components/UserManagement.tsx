@@ -25,8 +25,7 @@ import {
   Mail,
   MapPin,
   Car,
-  Calendar,
-  Key
+  Calendar
 } from "lucide-react";
 
 interface User {
@@ -333,36 +332,6 @@ const UserManagement = ({ language }: UserManagementProps) => {
     }
   };
 
-  const resetPassword = async (userId: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('reset-user-password', {
-        body: { userId }
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        // Show the temporary password to the admin
-        toast({
-          title: "Password Reset Successful",
-          description: `Temporary password: ${data.tempPassword}`,
-          duration: 10000, // Show for 10 seconds
-        });
-
-        // Also log to console for admin to copy if needed
-        console.log(`Temporary password for user ${userId}: ${data.tempPassword}`);
-        
-        await fetchUsers();
-      }
-    } catch (error: any) {
-      console.error('Error resetting password:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to reset password",
-        variant: "destructive",
-      });
-    }
-  };
 
   const createUser = async () => {
     try {
@@ -717,20 +686,11 @@ const UserManagement = ({ language }: UserManagementProps) => {
 
                             <div>
                               <label className="text-sm font-medium">Password Management</label>
-                              <div className="mt-2">
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  onClick={() => resetPassword(selectedUser.user_id)}
-                                  className="gap-1"
-                                >
-                                  <Key className="h-3 w-3" />
-                                  Reset Password
-                                </Button>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Generates a temporary password for the user
-                                </p>
-                              </div>
+                                <div className="mt-2">
+                                  <p className="text-xs text-muted-foreground">
+                                    Password reset is available in Super Admin Dashboard
+                                  </p>
+                                </div>
                             </div>
 
                             {selectedUser.parent_details && (

@@ -10,13 +10,14 @@ import ParentDashboard from "@/components/ParentDashboard";
 import DriverDashboard from "@/components/DriverDashboard";
 import AdminDashboard from "@/components/AdminDashboard";
 import SuperAdminDashboard from "@/components/SuperAdminDashboard";
+import ForcePasswordChange from "@/components/auth/ForcePasswordChange";
 
 type UserRole = "parent" | "driver" | "admin" | "super_admin" | null;
 
 const Index = () => {
   const [currentRole, setCurrentRole] = useState<UserRole>(null);
   const [language, setLanguage] = useState<"en" | "ta">("en");
-  const { user, loading, userRole } = useAuth();
+  const { user, loading, userRole, needsPasswordChange } = useAuth();
 
   const toggleLanguage = () => {
     setLanguage(language === "en" ? "ta" : "en");
@@ -38,6 +39,11 @@ const Index = () => {
 
   // If user is authenticated, show appropriate dashboard based on their role
   if (user && userRole) {
+    // Check if user needs to change password from temp password
+    if (needsPasswordChange) {
+      return <ForcePasswordChange onSuccess={() => window.location.reload()} />;
+    }
+
     return (
       <div className="min-h-screen bg-background">
         {userRole === "parent" && <ParentDashboard language={language} onBack={() => setCurrentRole(null)} />}
