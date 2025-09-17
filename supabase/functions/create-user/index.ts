@@ -147,11 +147,10 @@ serve(async (req) => {
       console.log('Profile created successfully')
     }
 
-    // Handle school assignment for admin role
-    let schoolId = null
-    if (userData.role === 'admin' && userData.schoolId) {
-      schoolId = userData.schoolId
-      console.log('Assigning admin to school:', schoolId)
+    // Handle school assignment - all users should be assigned to the creating admin's school
+    let schoolId = userData.schoolId || null
+    if (schoolId) {
+      console.log(`Assigning ${userData.role} to school:`, schoolId)
     }
 
     // Assign role with school assignment (upsert to handle existing users)
@@ -161,6 +160,7 @@ serve(async (req) => {
       assigned_by: userData.createdBy
     }
 
+    // Assign school ID for all roles if provided
     if (schoolId) {
       roleInsertData.school_id = schoolId
     }

@@ -475,7 +475,8 @@ const UserManagement = ({ language }: UserManagementProps) => {
         body: {
           userData: {
             ...newUser,
-            createdBy: currentUser?.id
+            createdBy: currentUser?.id,
+            schoolId: currentSchoolId // Pass the admin's school ID
           }
         }
       });
