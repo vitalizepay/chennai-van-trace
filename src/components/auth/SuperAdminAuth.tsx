@@ -3,11 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Phone, Shield, Loader2, Key } from "lucide-react";
-import { authenticator } from "otplib";
+import { Eye, EyeOff, Phone, Shield, Loader2 } from "lucide-react";
 
 interface SuperAdminAuthProps {
   onSuccess: () => void;
@@ -16,13 +14,11 @@ interface SuperAdminAuthProps {
 const SuperAdminAuth = ({ onSuccess }: SuperAdminAuthProps) => {
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
-  const [totpCode, setTotpCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<'credentials' | 'totp'>('credentials');
   const { signInWithMobilePassword } = useAuth();
 
-  const handleCredentialsSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!mobile || !password) {
@@ -53,62 +49,16 @@ const SuperAdminAuth = ({ onSuccess }: SuperAdminAuthProps) => {
           variant: "destructive",
         });
       } else {
-        // Move to TOTP step for super admin
-        setStep('totp');
-        toast({
-          title: "Credentials Verified",
-          description: "Please enter your TOTP code to complete login",
-        });
-      }
-    } catch (err) {
-      toast({
-        title: "Login Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleTotpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!totpCode || totpCode.length !== 6) {
-      toast({
-        title: "Invalid TOTP Code",
-        description: "Please enter a valid 6-digit TOTP code",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // For now, we'll use a placeholder secret. In production, this should be stored securely per user
-      const secret = 'JBSWY3DPEHPK3PXP'; // This would be unique per super admin user
-      const isValid = authenticator.verify({
-        token: totpCode,
-        secret: secret,
-      });
-
-      if (isValid) {
         toast({
           title: "Login Successful",
           description: "Welcome back, Super Admin!",
         });
         onSuccess();
-      } else {
-        toast({
-          title: "Invalid TOTP Code",
-          description: "The TOTP code you entered is incorrect",
-          variant: "destructive",
-        });
       }
     } catch (err) {
       toast({
-        title: "Verification Error",
-        description: "An error occurred while verifying your TOTP code",
+        title: "Login Error",
+        description: "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {
@@ -123,84 +73,16 @@ const SuperAdminAuth = ({ onSuccess }: SuperAdminAuthProps) => {
     });
   };
 
-  const handleBackToCredentials = () => {
-    setStep('credentials');
-    setTotpCode('');
-  };
-
-  if (step === 'totp') {
-    return (
-      <div className="space-y-4">
-        <Card className="border-2 border-orange-200 bg-orange-50/50">
-          <CardHeader className="text-center pb-3">
-            <div className="w-12 h-12 bg-orange-100 rounded-full mx-auto flex items-center justify-center mb-2">
-              <Shield className="h-6 w-6 text-orange-600" />
-            </div>
-            <CardTitle className="text-lg text-orange-800">Two-Factor Authentication</CardTitle>
-            <CardDescription className="text-orange-700">
-              Enter the 6-digit code from your authenticator app
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleTotpSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="totp">TOTP Code</Label>
-                <div className="relative">
-                  <Key className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="totp"
-                    type="text"
-                    placeholder="000000"
-                    value={totpCode}
-                    onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
-                    className="pl-10 text-center text-lg tracking-widest"
-                    maxLength={6}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={handleBackToCredentials}
-                  disabled={loading}
-                >
-                  Back
-                </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Verifying...
-                    </>
-                  ) : (
-                    "Verify & Login"
-                  )}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-
-        <div className="text-xs text-muted-foreground text-center">
-          <p>Having trouble? Contact your system administrator</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       <div className="text-center mb-4">
         <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
           <Shield className="h-3 w-3 mr-1" />
-          Super Admin + 2FA
+          Super Admin
         </Badge>
       </div>
 
-      <form onSubmit={handleCredentialsSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="mobile">Mobile Number</Label>
           <div className="relative">
@@ -250,10 +132,10 @@ const SuperAdminAuth = ({ onSuccess }: SuperAdminAuthProps) => {
           {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Verifying...
+              Signing In...
             </>
           ) : (
-            "Continue to 2FA"
+            "Sign In"
           )}
         </Button>
       </form>
@@ -269,7 +151,7 @@ const SuperAdminAuth = ({ onSuccess }: SuperAdminAuthProps) => {
       </div>
 
       <div className="text-xs text-muted-foreground text-center mt-4">
-        <p>VitalizePay Super Admin access requires mobile + password + TOTP verification</p>
+        <p>VitalizePay Super Admin access</p>
       </div>
     </div>
   );
