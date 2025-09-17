@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,8 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog, LogOut, School, Building } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import GoogleMap from "./GoogleMap";
+import EnhancedGoogleMap from "./EnhancedGoogleMap";
 import SuperAdminUserManagement from "./SuperAdminUserManagement";
+import SchoolManagement from "./SchoolManagement";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SuperAdminDashboardProps {
   language: "en" | "ta";
@@ -47,27 +49,86 @@ interface Alert {
 const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => {
   const { signOut } = useAuth();
   
-  const [schools] = useState<School[]>([
-    { id: "1", name: "St. Mary's High School", location: "Chennai Central", totalVans: 4, activeVans: 3, totalStudents: 150, status: "active" },
-    { id: "2", name: "Gandhi Memorial School", location: "T. Nagar", totalVans: 6, activeVans: 5, totalStudents: 220, status: "active" },
-    { id: "3", name: "Modern Public School", location: "Anna Nagar", totalVans: 3, activeVans: 2, totalStudents: 90, status: "active" },
-    { id: "4", name: "Sacred Heart School", location: "Velachery", totalVans: 5, activeVans: 4, totalStudents: 180, status: "inactive" },
-  ]);
+  const [schools, setSchools] = useState<School[]>([]);
+  const [vans, setVans] = useState<Van[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [vans] = useState<Van[]>([
-    { id: "1", number: "SMH-001", driver: "Raj Kumar", status: "active", students: 24, route: "Route A", school: "St. Mary's High School", schoolId: "1" },
-    { id: "2", number: "SMH-002", driver: "Priya Singh", status: "active", students: 18, route: "Route B", school: "St. Mary's High School", schoolId: "1" },
-    { id: "3", number: "GMS-001", driver: "Kumar Das", status: "active", students: 32, route: "Route C", school: "Gandhi Memorial School", schoolId: "2" },
-    { id: "4", number: "GMS-002", driver: "Meera Patel", status: "maintenance", students: 0, route: "Route D", school: "Gandhi Memorial School", schoolId: "2" },
-    { id: "5", number: "MPS-001", driver: "Suresh K", status: "active", students: 22, route: "Route E", school: "Modern Public School", schoolId: "3" },
-    { id: "6", number: "SHS-001", driver: "Lakshmi R", status: "inactive", students: 0, route: "Route F", school: "Sacred Heart School", schoolId: "4" },
-  ]);
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
-  const [alerts] = useState<Alert[]>([
-    { id: "1", type: "sos", message: "SOS alert from SMH-001", time: "2 mins ago", van: "SMH-001", school: "St. Mary's High School" },
-    { id: "2", type: "delay", message: "Route C running 15 minutes late", time: "8 mins ago", van: "GMS-001", school: "Gandhi Memorial School" },
-    { id: "3", type: "maintenance", message: "Scheduled maintenance due", time: "1 hour ago", van: "GMS-002", school: "Gandhi Memorial School" },
-  ]);
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+
+      // Fetch schools
+      const { data: schoolsData, error: schoolsError } = await supabase
+        .from('schools')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (schoolsError) throw schoolsError;
+
+      // Fetch vans with school information
+      const { data: vansData, error: vansError } = await supabase
+        .from('vans')
+        .select(`
+          id,
+          van_number,
+          route_name,
+          current_students,
+          capacity,
+          status,
+          school_id,
+          schools!inner(name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (vansError) throw vansError;
+
+      // Transform data
+      const transformedSchools: School[] = (schoolsData || []).map(school => ({
+        id: school.id,
+        name: school.name,
+        location: school.location,
+        totalVans: school.total_vans,
+        activeVans: vansData?.filter(v => v.school_id === school.id && v.status === 'active').length || 0,
+        totalStudents: school.total_students,
+        status: school.status as 'active' | 'inactive'
+      }));
+
+      const transformedVans: Van[] = (vansData || []).map(van => ({
+        id: van.id,
+        number: van.van_number,
+        driver: 'Driver Name', // TODO: Join with driver details
+        status: van.status as 'active' | 'inactive' | 'maintenance',
+        students: van.current_students,
+        route: van.route_name || 'No route assigned',
+        school: van.schools.name,
+        schoolId: van.school_id || ''
+      }));
+
+      setSchools(transformedSchools);
+      setVans(transformedVans);
+      
+      // Set mock alerts for now
+      setAlerts([
+        { id: "1", type: "sos", message: "SOS alert detected", time: "2 mins ago", van: transformedVans[0]?.number || "N/A", school: transformedVans[0]?.school || "N/A" },
+        { id: "2", type: "delay", message: "Route running late", time: "8 mins ago", van: transformedVans[1]?.number || "N/A", school: transformedVans[1]?.school || "N/A" },
+      ]);
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const texts = {
     en: {
@@ -204,10 +265,10 @@ const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => 
               {t.overview}
             </TabsTrigger>
             <TabsTrigger value="schools" className="gap-2">
-              <School className="h-4 w-4" />
-              {t.schools}
+              <Building className="h-4 w-4" />
+              Manage
             </TabsTrigger>
-            <TabsTrigger value="users" className="gap-2">
+            <TabsTrigger value="admins" className="gap-2">
               <UserCog className="h-4 w-4" />
               Admins
             </TabsTrigger>
@@ -271,7 +332,7 @@ const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => 
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <GoogleMap height="h-64" className="rounded-lg" />
+                <EnhancedGoogleMap height="h-64" className="rounded-lg" showAllVans={true} />
                 <div className="mt-4 grid grid-cols-2 gap-4">
                   <Button className="w-full gap-2" onClick={handleSendGlobalNotification}>
                     <Bell className="h-4 w-4" />
@@ -287,45 +348,10 @@ const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => 
           </TabsContent>
 
           <TabsContent value="schools" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">{t.schools}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {schools.map((school) => (
-                  <div key={school.id} className="flex items-center justify-between p-4 bg-accent rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                        <School className="h-6 w-6 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">{school.name}</p>
-                        <p className="text-sm text-muted-foreground">{school.location}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-center">
-                        <p className="text-sm font-medium">{school.activeVans}/{school.totalVans}</p>
-                        <p className="text-xs text-muted-foreground">{t.vans}</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-sm font-medium">{school.totalStudents}</p>
-                        <p className="text-xs text-muted-foreground">{t.students}</p>
-                      </div>
-                      <Badge className={`bg-${getStatusColor(school.status)} text-${getStatusColor(school.status)}-foreground`}>
-                        {t[school.status as keyof typeof t] || school.status}
-                      </Badge>
-                      <Button variant="outline" size="sm">
-                        {t.manageSchool}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+            <SchoolManagement language={language} />
           </TabsContent>
 
-          <TabsContent value="users" className="space-y-4">
+          <TabsContent value="admins" className="space-y-4">
             <SuperAdminUserManagement language={language} />
           </TabsContent>
 

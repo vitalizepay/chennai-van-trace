@@ -179,6 +179,48 @@ export type Database = {
         }
         Relationships: []
       }
+      schools: {
+        Row: {
+          address: string
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          location: string
+          name: string
+          status: string
+          total_students: number | null
+          total_vans: number | null
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          location: string
+          name: string
+          status?: string
+          total_students?: number | null
+          total_vans?: number | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          location?: string
+          name?: string
+          status?: string
+          total_students?: number | null
+          total_vans?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_activity_logs: {
         Row: {
           action: string
@@ -232,6 +274,62 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vans: {
+        Row: {
+          capacity: number
+          created_at: string
+          current_lat: number | null
+          current_lng: number | null
+          current_students: number | null
+          driver_id: string | null
+          id: string
+          last_location_update: string | null
+          route_name: string | null
+          school_id: string
+          status: string
+          updated_at: string
+          van_number: string
+        }
+        Insert: {
+          capacity: number
+          created_at?: string
+          current_lat?: number | null
+          current_lng?: number | null
+          current_students?: number | null
+          driver_id?: string | null
+          id?: string
+          last_location_update?: string | null
+          route_name?: string | null
+          school_id: string
+          status?: string
+          updated_at?: string
+          van_number: string
+        }
+        Update: {
+          capacity?: number
+          created_at?: string
+          current_lat?: number | null
+          current_lng?: number | null
+          current_students?: number | null
+          driver_id?: string | null
+          id?: string
+          last_location_update?: string | null
+          route_name?: string | null
+          school_id?: string
+          status?: string
+          updated_at?: string
+          van_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vans_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
