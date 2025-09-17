@@ -30,47 +30,87 @@ serve(async (req) => {
     const tempPassword = userData.password || Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8).toUpperCase() + '123!'
     console.log('Generated temp password for user:', userData.email)
 
-    // Create user in Supabase Auth with admin client
-    console.log('Creating auth user for:', userData.email)
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: userData.email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: {
-        full_name: userData.fullName
+    let authData;
+    let isExistingUser = false;
+
+    // First check if user already exists
+    console.log('Checking if user already exists:', userData.email)
+    const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers()
+    
+    if (listError) {
+      console.error('Error listing users:', listError)
+      throw listError
+    }
+
+    const existingUser = existingUsers.users.find(u => u.email === userData.email)
+    
+    if (existingUser) {
+      console.log('User already exists, updating existing user:', existingUser.id)
+      isExistingUser = true;
+      
+      // Update existing user's password and metadata
+      const { data: updateData, error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+        existingUser.id,
+        {
+          password: tempPassword,
+          user_metadata: {
+            full_name: userData.fullName
+          }
+        }
+      )
+
+      if (updateError) {
+        console.error('Error updating existing user:', updateError)
+        throw updateError
       }
-    })
 
-    if (authError) {
-      console.error('Auth creation error:', authError)
-      throw authError
+      authData = { user: updateData.user }
+      console.log('Existing user updated successfully:', existingUser.id)
+    } else {
+      // Create new user in Supabase Auth with admin client
+      console.log('Creating new auth user for:', userData.email)
+      const { data: createData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: userData.email,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: {
+          full_name: userData.fullName
+        }
+      })
+
+      if (authError) {
+        console.error('Auth creation error:', authError)
+        throw authError
+      }
+
+      if (!createData.user) {
+        console.error('No user data returned from auth creation')
+        throw new Error('Failed to create user')
+      }
+
+      authData = createData
+      console.log('New auth user created successfully:', createData.user.id)
     }
 
-    if (!authData.user) {
-      console.error('No user data returned from auth creation')
-      throw new Error('Failed to create user')
-    }
-
-    console.log('Auth user created successfully:', authData.user.id)
-
-    // Update the profile
-    console.log('Updating profile for user:', authData.user.id)
+    // Update or create the profile
+    console.log('Updating/creating profile for user:', authData.user.id)
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .update({
+      .upsert({
+        user_id: authData.user.id,
+        email: userData.email,
         full_name: userData.fullName,
         mobile: userData.phone,
         phone: userData.phone,
         status: 'approved'
       })
-      .eq('user_id', authData.user.id)
 
     if (profileError) {
-      console.error('Profile update error:', profileError)
+      console.error('Profile upsert error:', profileError)
       throw profileError
     }
 
-    console.log('Profile updated successfully')
+    console.log('Profile updated/created successfully')
 
     // Handle school assignment for admin role
     let schoolId = null
@@ -79,7 +119,7 @@ serve(async (req) => {
       console.log('Assigning admin to school:', schoolId)
     }
 
-    // Assign role with school assignment
+    // Assign role with school assignment (upsert to handle existing users)
     const roleInsertData: any = {
       user_id: authData.user.id,
       role: userData.role,
@@ -90,7 +130,17 @@ serve(async (req) => {
       roleInsertData.school_id = schoolId
     }
 
-    console.log('Inserting role with data:', roleInsertData)
+    console.log('Upserting role with data:', roleInsertData)
+    
+    // Delete existing roles for this user first to avoid conflicts
+    if (isExistingUser) {
+      console.log('Deleting existing roles for user:', authData.user.id)
+      await supabaseAdmin
+        .from('user_roles')
+        .delete()
+        .eq('user_id', authData.user.id)
+    }
+
     const { error: roleError } = await supabaseAdmin
       .from('user_roles')
       .insert(roleInsertData)
@@ -100,9 +150,17 @@ serve(async (req) => {
       throw roleError
     }
 
-    // Add role-specific details
-    console.log('Adding role-specific details for:', userData.role)
+    // Add role-specific details (upsert to handle existing users)
+    console.log('Adding/updating role-specific details for:', userData.role)
     if (userData.role === 'driver') {
+      // Delete existing driver details if user exists
+      if (isExistingUser) {
+        await supabaseAdmin
+          .from('driver_details')
+          .delete()
+          .eq('user_id', authData.user.id)
+      }
+
       const { error: driverError } = await supabaseAdmin
         .from('driver_details')
         .insert({
@@ -113,8 +171,19 @@ serve(async (req) => {
           route_assigned: userData.routeAssigned || null
         })
 
-      if (driverError) throw driverError
+      if (driverError) {
+        console.error('Driver details error:', driverError)
+        throw driverError
+      }
     } else if (userData.role === 'parent') {
+      // Delete existing parent details if user exists
+      if (isExistingUser) {
+        await supabaseAdmin
+          .from('parent_details')
+          .delete()
+          .eq('user_id', authData.user.id)
+      }
+
       const { error: parentError } = await supabaseAdmin
         .from('parent_details')
         .insert({
@@ -124,16 +193,22 @@ serve(async (req) => {
           emergency_contact: userData.emergencyContact || null
         })
 
-      if (parentError) throw parentError
+      if (parentError) {
+        console.error('Parent details error:', parentError)
+        throw parentError
+      }
     }
 
-    console.log('User created successfully:', authData.user.id)
+    const actionMessage = isExistingUser ? 'updated' : 'created'
+    console.log(`User ${actionMessage} successfully:`, authData.user.id)
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         user: authData.user,
-        tempPassword: tempPassword
+        tempPassword: tempPassword,
+        isExistingUser: isExistingUser,
+        message: `User ${actionMessage} successfully`
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
