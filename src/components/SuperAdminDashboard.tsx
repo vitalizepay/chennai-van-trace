@@ -3,13 +3,31 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog, LogOut, School, Building } from "lucide-react";
+import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog, LogOut, School, Building, BookOpen, Zap, Eye, Plus, Search, TrendingUp, UserCheck } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import EnhancedGoogleMap from "./EnhancedGoogleMap";
 import SuperAdminUserManagement from "./SuperAdminUserManagement";
 import SchoolManagement from "./SchoolManagement";
 import { supabase } from "@/integrations/supabase/client";
+
+interface Analytics {
+  totalUsers: number;
+  activeSchools: number;
+  totalVans: number;
+  totalStudents: number;
+  recentActivity: Array<{
+    user_name: string;
+    action: string;
+    created_at: string;
+  }>;
+  schoolStats: Array<{
+    name: string;
+    total_vans: number;
+    current_students: number;
+    total_capacity: number;
+  }>;
+}
 
 interface SuperAdminDashboardProps {
   language: "en" | "ta";
@@ -53,6 +71,14 @@ const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => 
   const [vans, setVans] = useState<Van[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState<Analytics>({
+    totalUsers: 0,
+    activeSchools: 0,
+    totalVans: 0,
+    totalStudents: 0,
+    recentActivity: [],
+    schoolStats: []
+  });
 
   useEffect(() => {
     fetchDashboardData();
@@ -87,6 +113,31 @@ const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => 
 
       if (vansError) throw vansError;
 
+      // Fetch user count
+      const { count: userCount, error: userCountError } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+
+      if (userCountError) throw userCountError;
+
+      // Fetch recent activity (simplified without join)
+      const { data: activityData, error: activityError } = await supabase
+        .from('user_activity_logs')
+        .select('action, created_at, user_id')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (activityError) throw activityError;
+
+      // Get user names for activities
+      const userIds = [...new Set(activityData?.map(a => a.user_id) || [])];
+      const { data: usersData } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .in('user_id', userIds);
+
+      const usersMap = new Map(usersData?.map(u => [u.user_id, u.full_name]) || []);
+
       // Transform data
       const transformedSchools: School[] = (schoolsData || []).map(school => ({
         id: school.id,
@@ -109,8 +160,39 @@ const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => 
         schoolId: van.school_id || ''
       }));
 
+      // Calculate analytics
+      const totalStudents = vansData?.reduce((sum, van) => sum + (van.current_students || 0), 0) || 0;
+      const totalCapacity = vansData?.reduce((sum, van) => sum + (van.capacity || 0), 0) || 0;
+      
+      const schoolStats = schoolsData?.map(school => {
+        const schoolVans = vansData?.filter(van => van.school_id === school.id) || [];
+        const schoolStudents = schoolVans.reduce((sum, van) => sum + (van.current_students || 0), 0);
+        const schoolCapacity = schoolVans.reduce((sum, van) => sum + (van.capacity || 0), 0);
+        
+        return {
+          name: school.name,
+          total_vans: schoolVans.length,
+          current_students: schoolStudents,
+          total_capacity: schoolCapacity
+        };
+      }) || [];
+
+      const recentActivity = activityData?.slice(0, 5).map(activity => ({
+        user_name: usersMap.get(activity.user_id) || 'Unknown User',
+        action: activity.action,
+        created_at: activity.created_at
+      })) || [];
+
       setSchools(transformedSchools);
       setVans(transformedVans);
+      setAnalytics({
+        totalUsers: userCount || 0,
+        activeSchools: schoolsData?.filter(s => s.status === 'active').length || 0,
+        totalVans: vansData?.length || 0,
+        totalStudents,
+        recentActivity,
+        schoolStats
+      });
       
       // Set mock alerts for now
       setAlerts([
@@ -412,18 +494,145 @@ const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => 
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {/* Total Users */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-blue-500" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Users</p>
+                      <p className="text-2xl font-bold">{analytics.totalUsers}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Active Schools */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2">
+                    <Building className="h-5 w-5 text-green-500" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Active Schools</p>
+                      <p className="text-2xl font-bold">{analytics.activeSchools}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Total Vans */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2">
+                    <Bus className="h-5 w-5 text-orange-500" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Vans</p>
+                      <p className="text-2xl font-bold">{analytics.totalVans}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Total Students */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 text-purple-500" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Students</p>
+                      <p className="text-2xl font-bold">{analytics.totalStudents}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Recent Activity */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">{t.reports} - System Wide</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Zap className="h-4 w-4" />
+                  Recent User Activity
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-muted rounded-lg h-40 flex items-center justify-center">
-                  <div className="text-center text-muted-foreground">
-                    <BarChart3 className="h-8 w-8 mx-auto mb-2" />
-                    <p className="text-sm">System Analytics Dashboard</p>
-                    <p className="text-xs">Multi-school reports, attendance analytics</p>
+                {analytics.recentActivity.length > 0 ? (
+                  <div className="space-y-3">
+                    {analytics.recentActivity.map((activity, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-2 h-2 rounded-full ${
+                            activity.action === 'login' ? 'bg-green-500' : 
+                            activity.action === 'logout' ? 'bg-red-500' : 'bg-blue-500'
+                          }`} />
+                          <div>
+                            <p className="text-sm font-medium">{activity.user_name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {activity.action === 'login' ? 'Logged in' : 
+                               activity.action === 'logout' ? 'Logged out' : 
+                               activity.action}
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(activity.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Zap className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No recent activity</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* School Performance Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  School Van Utilization
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {analytics.schoolStats.length > 0 ? (
+                  <div className="space-y-4">
+                    {analytics.schoolStats.map((school, index) => (
+                      <div key={index} className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="font-medium">{school.name}</span>
+                          <span className="text-muted-foreground">
+                            {school.current_students}/{school.total_capacity} students
+                          </span>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-2">
+                          <div 
+                            className="bg-primary h-2 rounded-full transition-all duration-300"
+                            style={{ 
+                              width: `${school.total_capacity > 0 ? (school.current_students / school.total_capacity * 100) : 0}%` 
+                            }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>{school.total_vans} vans</span>
+                          <span>
+                            {school.total_capacity > 0 ? 
+                              Math.round(school.current_students / school.total_capacity * 100) : 0}% capacity
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <BarChart3 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No school data available</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
