@@ -346,28 +346,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        // Check if user was created recently (within last 24 hours) or has a flag indicating temp password
-        const createdAt = new Date(user.created_at);
-        const now = new Date();
-        const hoursDiff = (now.getTime() - createdAt.getTime()) / (1000 * 3600);
-        
-        // If account is new or user hasn't updated their password recently, they might need to change it
-        if (hoursDiff < 24) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('updated_at, created_at')
-            .eq('user_id', user.id)
-            .single();
+        // Check user profile for password change indicators
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('created_at, updated_at, status')
+          .eq('user_id', user.id)
+          .single();
           
-          if (profile) {
-            const profileCreated = new Date(profile.created_at);
-            const profileUpdated = new Date(profile.updated_at);
-            
-            // If profile hasn't been updated since creation, likely using temp password
-            const updatedRecently = (profileUpdated.getTime() - profileCreated.getTime()) > 60000; // 1 minute
-            setNeedsPasswordChange(!updatedRecently);
-            return !updatedRecently;
-          }
+        if (profile) {
+          // If profile was created recently and hasn't been updated much, likely temp password
+          const profileCreated = new Date(profile.created_at);
+          const profileUpdated = new Date(profile.updated_at);
+          const timeDiff = profileUpdated.getTime() - profileCreated.getTime();
+          
+          // If updated time is very close to created time (less than 2 minutes), likely temp password
+          // Also check if user was created recently (within 24 hours)
+          const userCreated = new Date(user.created_at);
+          const now = new Date();
+          const userAgeHours = (now.getTime() - userCreated.getTime()) / (1000 * 3600);
+          
+          const isRecentUser = userAgeHours < 24;
+          const hasMinimalUpdates = timeDiff < (2 * 60 * 1000); // 2 minutes
+          
+          const needsChange = isRecentUser && hasMinimalUpdates;
+          setNeedsPasswordChange(needsChange);
+          return needsChange;
         }
       }
       setNeedsPasswordChange(false);

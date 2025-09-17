@@ -41,7 +41,12 @@ const Index = () => {
   if (user && userRole) {
     // Check if user needs to change password from temp password
     if (needsPasswordChange) {
-      return <ForcePasswordChange onSuccess={() => window.location.reload()} />;
+      return <ForcePasswordChange onSuccess={() => {
+        // Force a refresh of the auth state without page reload
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }} />;
     }
 
     return (

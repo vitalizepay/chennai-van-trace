@@ -81,7 +81,17 @@ const ForcePasswordChange = ({ onSuccess }: ForcePasswordChangeProps) => {
         password: newPassword
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'same_password') {
+          toast({
+            title: "Password Error",
+            description: "New password must be different from your current password",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
 
       // Update user's profile to mark that they've changed from temp password
       const { data: { user } } = await supabase.auth.getUser();
@@ -100,7 +110,10 @@ const ForcePasswordChange = ({ onSuccess }: ForcePasswordChangeProps) => {
         description: "Your password has been successfully changed",
       });
       
-      onSuccess();
+      // Wait a moment for the database update to propagate
+      setTimeout(() => {
+        onSuccess();
+      }, 500);
     } catch (error: any) {
       console.error('Error updating password:', error);
       toast({
