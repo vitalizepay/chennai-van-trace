@@ -47,10 +47,12 @@ interface UserManagementProps {
 }
 
 const UserManagement = ({ language }: UserManagementProps) => {
-  const { userRole } = useAuth();
+  const { userRole, user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [schoolData, setSchoolData] = useState<{ id: string; name: string } | null>(null);
+  const [currentSchoolId, setCurrentSchoolId] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newUser, setNewUser] = useState({
     email: '',
@@ -189,17 +191,55 @@ const UserManagement = ({ language }: UserManagementProps) => {
     try {
       setLoading(true);
       
-      // First fetch all profiles
-      const { data: profilesData, error: profilesError } = await supabase
+      // First get current admin's school assignment
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('school_id')
+        .eq('user_id', user?.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (roleError) throw roleError;
+
+      let schoolId = roleData?.school_id;
+      setCurrentSchoolId(schoolId);
+
+      // If user is super admin, they can see all schools
+      if (userRole === 'super_admin') {
+        schoolId = null; // No school filtering for super admin
+      }
+
+      // Get school details if school is assigned
+      if (schoolId) {
+        const { data: school, error: schoolError } = await supabase
+          .from('schools')
+          .select('id, name')
+          .eq('id', schoolId)
+          .single();
+        
+        if (schoolError) throw schoolError;
+        setSchoolData(school);
+      }
+      
+      // Fetch profiles - filter by school if not super admin
+      let profilesQuery = supabase
         .from('profiles')
         .select('user_id, email, full_name, mobile, status, created_at');
 
+      const { data: profilesData, error: profilesError } = await profilesQuery;
+
       if (profilesError) throw profilesError;
 
-      // Fetch all roles for all users
-      const { data: rolesData, error: rolesError } = await supabase
+      // Fetch roles - filter by school if not super admin
+      let rolesQuery = supabase
         .from('user_roles')
-        .select('user_id, role');
+        .select('user_id, role, school_id');
+      
+      if (schoolId && userRole !== 'super_admin') {
+        rolesQuery = rolesQuery.eq('school_id', schoolId);
+      }
+
+      const { data: rolesData, error: rolesError } = await rolesQuery;
 
       if (rolesError) throw rolesError;
 
@@ -225,8 +265,16 @@ const UserManagement = ({ language }: UserManagementProps) => {
 
       if (activityError) throw activityError;
 
+      // Get user IDs that have roles in this school (or all if super admin)
+      const schoolUserIds = rolesData?.map(role => role.user_id) || [];
+
+      // Filter profiles to only include users with roles in this school
+      const schoolProfiles = userRole === 'super_admin' 
+        ? profilesData 
+        : profilesData?.filter(profile => schoolUserIds.includes(profile.user_id)) || [];
+
       // Combine all data
-      const formattedUsers = profilesData?.map((profile: any) => {
+      const formattedUsers = schoolProfiles?.map((profile: any) => {
         const userRoles = rolesData?.filter(role => role.user_id === profile.user_id) || [];
         const parentDetails = parentData?.find(parent => parent.user_id === profile.user_id) || null;
         const driverDetails = driverData?.find(driver => driver.user_id === profile.user_id) || null;
@@ -329,6 +377,7 @@ const UserManagement = ({ language }: UserManagementProps) => {
         .upsert({ 
           user_id: userId, 
           role: role,
+          school_id: currentSchoolId, // Assign to current admin's school
           assigned_by: (await supabase.auth.getUser()).data.user?.id
         });
 
@@ -492,6 +541,19 @@ const UserManagement = ({ language }: UserManagementProps) => {
 
   return (
     <div className="space-y-6">
+      {/* School Header */}
+      {schoolData && (
+        <Card className="bg-primary/5 border-primary/20">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 text-primary">
+              <Shield className="h-5 w-5" />
+              <span className="font-semibold text-lg">{schoolData.name}</span>
+              <Badge variant="outline" className="text-xs">School Administration</Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-4">
         <Card>
