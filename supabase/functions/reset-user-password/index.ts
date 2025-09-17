@@ -23,44 +23,46 @@ serve(async (req) => {
       }
     )
 
-    const { userId } = await req.json()
+    const { userId, customPassword } = await req.json()
 
     if (!userId) {
       throw new Error('User ID is required')
     }
 
-    // Generate a temporary password
-    const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase() + '123!'
+    // Use custom password if provided, otherwise generate a temporary password
+    const password = customPassword || (Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase() + '123!')
+    const isCustomPassword = !!customPassword
 
-    console.log(`Resetting password for user: ${userId}`)
+    console.log(`${isCustomPassword ? 'Setting custom' : 'Resetting'} password for user: ${userId}`)
 
     // Reset user password using admin client
     const { data, error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-      password: tempPassword
+      password: password
     })
 
     if (error) {
-      console.error('Error resetting password:', error)
+      console.error('Error updating password:', error)
       throw error
     }
 
-    console.log('Password reset successful for user:', userId)
+    console.log(`Password ${isCustomPassword ? 'set' : 'reset'} successful for user:`, userId)
 
     // Log the activity
     await supabaseAdmin.from('user_activity_logs').insert({
       user_id: userId,
-      action: 'password_reset_by_admin',
+      action: isCustomPassword ? 'password_set_by_admin' : 'password_reset_by_admin',
       details: { 
-        reset_at: new Date().toISOString(),
-        reset_by: 'admin'
+        updated_at: new Date().toISOString(),
+        updated_by: 'admin',
+        type: isCustomPassword ? 'custom_password' : 'temp_password'
       }
     })
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        tempPassword: tempPassword,
-        message: 'Password reset successfully'
+        tempPassword: isCustomPassword ? null : password,
+        message: `Password ${isCustomPassword ? 'set' : 'reset'} successfully`
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

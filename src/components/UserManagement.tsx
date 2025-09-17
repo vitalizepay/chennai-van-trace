@@ -73,6 +73,10 @@ const UserManagement = ({ language }: UserManagementProps) => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [passwordUser, setPasswordUser] = useState<{ id: string; name: string; email: string } | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const texts = {
     en: {
@@ -98,6 +102,13 @@ const UserManagement = ({ language }: UserManagementProps) => {
       suspend: "Suspend",
       activate: "Activate",
       viewDetails: "View Details",
+      setPassword: "Set Password",
+      newPassword: "New Password",
+      confirmPassword: "Confirm Password",
+      passwordRequirements: "Password must be at least 8 characters long with uppercase, lowercase, number, and special character",
+      updatePassword: "Update Password",
+      passwordMismatch: "Passwords do not match",
+      passwordTooWeak: "Password does not meet requirements",
       userDetails: "User Details",
       personalInfo: "Personal Information",
       roleInfo: "Role Information",
@@ -138,6 +149,13 @@ const UserManagement = ({ language }: UserManagementProps) => {
       suspend: "இடைநிறுத்து",
       activate: "செயல்படுத்து",
       viewDetails: "விவரங்களைப் பார்க்கவும்",
+      setPassword: "கடவுச்சொல் அமைக்கவும்",
+      newPassword: "புதிய கடவுச்சொல்",
+      confirmPassword: "கடவுச்சொல் உறுதிப்படுத்தவும்",
+      passwordRequirements: "கடவுச்சொல் குறைந்தது 8 எழுத்துகள், பெரிய-சிறிய எழுத்துகள், எண் மற்றும் சிறப்பு எழுத்து இருக்க வேண்டும்",
+      updatePassword: "கடவுச்சொல் புதுப்பிக்கவும்",
+      passwordMismatch: "கடவுச்சொற்கள் பொருந்தவில்லை",
+      passwordTooWeak: "கடவுச்சொல் தேவைகளை பூர்த்தி செய்யவில்லை",
       userDetails: "பயனர் விவரங்கள்",
       personalInfo: "தனிப்பட்ட தகவல்",
       roleInfo: "பாத்திர தகவல்",
@@ -332,6 +350,71 @@ const UserManagement = ({ language }: UserManagementProps) => {
     }
   };
 
+
+  const setCustomPassword = async () => {
+    if (!passwordUser || !newPassword || !confirmPassword) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all password fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: t.passwordMismatch,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Password validation
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(newPassword);
+    const hasLowerCase = /[a-z]/.test(newPassword);
+    const hasNumbers = /\d/.test(newPassword);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(newPassword);
+
+    if (newPassword.length < minLength || !hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar) {
+      toast({
+        title: "Weak Password",
+        description: t.passwordTooWeak,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase.functions.invoke('reset-user-password', {
+        body: { 
+          userId: passwordUser.id,
+          customPassword: newPassword
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password Updated",
+        description: `Password updated successfully for ${passwordUser.name}`,
+      });
+
+      setShowPasswordDialog(false);
+      setPasswordUser(null);
+      setNewPassword('');
+      setConfirmPassword('');
+      await fetchUsers();
+    } catch (error: any) {
+      console.error('Error setting password:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update password",
+        variant: "destructive",
+      });
+    }
+  };
 
   const createUser = async () => {
     try {
@@ -586,6 +669,23 @@ const UserManagement = ({ language }: UserManagementProps) => {
                       {t.activate}
                     </Button>
                   )}
+
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="gap-1"
+                    onClick={() => {
+                      setPasswordUser({ 
+                        id: user.user_id, 
+                        name: user.full_name, 
+                        email: user.email 
+                      });
+                      setShowPasswordDialog(true);
+                    }}
+                  >
+                    🔑
+                    {t.setPassword}
+                  </Button>
 
                   <Dialog>
                     <DialogTrigger asChild>
@@ -944,6 +1044,65 @@ const UserManagement = ({ language }: UserManagementProps) => {
                 disabled={!newUser.email || !newUser.fullName || !newUser.password}
               >
                 Create User
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Set Password Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t.setPassword}</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              {passwordUser && `Set custom password for ${passwordUser.name}`}
+            </p>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">{t.newPassword}</label>
+              <Input
+                type="password"
+                placeholder="Enter new password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">{t.confirmPassword}</label>
+              <Input
+                type="password"
+                placeholder="Confirm new password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+            
+            <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+              {t.passwordRequirements}
+            </div>
+            
+            <div className="flex gap-2 pt-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowPasswordDialog(false);
+                  setPasswordUser(null);
+                  setNewPassword('');
+                  setConfirmPassword('');
+                }}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={setCustomPassword}
+                className="flex-1"
+              >
+                {t.updatePassword}
               </Button>
             </div>
           </div>
