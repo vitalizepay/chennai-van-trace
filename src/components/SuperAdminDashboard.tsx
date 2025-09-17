@@ -7,7 +7,7 @@ import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import GoogleMap from "./GoogleMap";
-import UserManagement from "./UserManagement";
+import SuperAdminUserManagement from "./SuperAdminUserManagement";
 
 interface SuperAdminDashboardProps {
   language: "en" | "ta";
@@ -198,7 +198,7 @@ const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => 
 
       <div className="p-4">
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview" className="gap-2">
               <BarChart3 className="h-4 w-4" />
               {t.overview}
@@ -206,6 +206,10 @@ const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => 
             <TabsTrigger value="schools" className="gap-2">
               <School className="h-4 w-4" />
               {t.schools}
+            </TabsTrigger>
+            <TabsTrigger value="users" className="gap-2">
+              <UserCog className="h-4 w-4" />
+              Admins
             </TabsTrigger>
             <TabsTrigger value="vans" className="gap-2">
               <Bus className="h-4 w-4" />
@@ -319,6 +323,10 @@ const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => 
                 ))}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="users" className="space-y-4">
+            <SuperAdminUserManagement language={language} />
           </TabsContent>
 
           <TabsContent value="vans" className="space-y-4">

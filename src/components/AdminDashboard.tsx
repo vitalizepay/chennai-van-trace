@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog, LogOut } from "lucide-react";
+import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog, LogOut, Shield } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import GoogleMap from "./GoogleMap";
@@ -265,6 +265,25 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
           </TabsContent>
 
           <TabsContent value="users" className="space-y-4">
+            {/* Admin Role Info */}
+            <Card className="bg-admin/5 border-admin/20 mb-4">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <Shield className="h-5 w-5 text-admin" />
+                  <h3 className="font-semibold text-admin">School Admin Role</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  As a school admin, you can create and manage parent and driver accounts for your school only.
+                </p>
+                <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                  <Badge variant="outline" className="text-xs">Super Admin</Badge>
+                  <span>→</span>
+                  <Badge className="bg-admin text-admin-foreground text-xs">School Admin (You)</Badge>
+                  <span>→</span>
+                  <Badge variant="outline" className="text-xs">Parents & Drivers</Badge>
+                </div>
+              </CardContent>
+            </Card>
             <UserManagement language={language} />
           </TabsContent>
 
