@@ -93,9 +93,10 @@ const ForcePasswordChange = ({ onSuccess }: ForcePasswordChangeProps) => {
         throw error;
       }
 
-      // Update user's profile to mark that they've changed from temp password
+      // Update user's profile and log the password change
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        // Update profile status
         await supabase
           .from('profiles')
           .update({ 
@@ -103,6 +104,18 @@ const ForcePasswordChange = ({ onSuccess }: ForcePasswordChangeProps) => {
             updated_at: new Date().toISOString()
           })
           .eq('user_id', user.id);
+
+        // Log the password change to prevent repeated prompts
+        await supabase
+          .from('user_activity_logs')
+          .insert({
+            user_id: user.id,
+            action: 'password_changed',
+            details: {
+              changed_at: new Date().toISOString(),
+              type: 'user_initiated'
+            }
+          });
       }
 
       toast({

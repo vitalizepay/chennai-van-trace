@@ -346,6 +346,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        // Check if user has already changed from temp password by looking at activity logs
+        const { data: passwordChangeLog } = await supabase
+          .from('user_activity_logs')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('action', 'password_changed')
+          .limit(1);
+
+        // If user has already changed password, don't prompt again
+        if (passwordChangeLog && passwordChangeLog.length > 0) {
+          setNeedsPasswordChange(false);
+          return false;
+        }
+
         // Check user profile for password change indicators
         const { data: profile } = await supabase
           .from('profiles')
@@ -354,21 +368,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           .single();
           
         if (profile) {
-          // If profile was created recently and hasn't been updated much, likely temp password
-          const profileCreated = new Date(profile.created_at);
-          const profileUpdated = new Date(profile.updated_at);
-          const timeDiff = profileUpdated.getTime() - profileCreated.getTime();
-          
-          // If updated time is very close to created time (less than 2 minutes), likely temp password
-          // Also check if user was created recently (within 24 hours)
+          // Check if user was created recently (within 24 hours) and profile hasn't been significantly updated
           const userCreated = new Date(user.created_at);
+          const profileUpdated = new Date(profile.updated_at);
           const now = new Date();
           const userAgeHours = (now.getTime() - userCreated.getTime()) / (1000 * 3600);
+          const timeSinceUpdate = (now.getTime() - profileUpdated.getTime()) / (1000 * 60); // minutes
           
+          // Only prompt for password change if:
+          // 1. User was created recently (within 24 hours)
+          // 2. Profile was updated very recently (less than 5 minutes ago) - indicating fresh temp password
           const isRecentUser = userAgeHours < 24;
-          const hasMinimalUpdates = timeDiff < (2 * 60 * 1000); // 2 minutes
+          const hasRecentUpdate = timeSinceUpdate < 5;
           
-          const needsChange = isRecentUser && hasMinimalUpdates;
+          const needsChange = isRecentUser && hasRecentUpdate;
           setNeedsPasswordChange(needsChange);
           return needsChange;
         }
