@@ -315,7 +315,7 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
       email: '',
       full_name: '',
       mobile: '',
-      school_id: ''
+      school_id: 'none'
     });
   };
 
@@ -334,7 +334,7 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
         _email: formData.email,
         _mobile: formData.mobile,
         _full_name: formData.full_name,
-        _school_id: formData.school_id || null
+        _school_id: formData.school_id === "none" || !formData.school_id ? null : formData.school_id
       });
 
       if (error) throw error;
@@ -631,7 +631,7 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
                     <SelectValue placeholder={t.selectSchool} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No School Assignment</SelectItem>
+                    <SelectItem value="none">No School Assignment</SelectItem>
                     {schools.map((school) => (
                       <SelectItem key={school.id} value={school.id}>
                         <div className="flex items-center gap-2">
