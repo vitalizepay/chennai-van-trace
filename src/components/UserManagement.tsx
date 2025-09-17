@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { 
   Users, 
   Check, 
@@ -46,6 +47,7 @@ interface UserManagementProps {
 }
 
 const UserManagement = ({ language }: UserManagementProps) => {
+  const { userRole } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -176,10 +178,15 @@ const UserManagement = ({ language }: UserManagementProps) => {
 
       if (profilesError) throw profilesError;
 
-      // Then fetch roles for all users
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
+      // Then fetch roles for all users, filtering based on current user's role
+      let roleQuery = supabase.from('user_roles').select('user_id, role');
+      
+      if (userRole !== 'super_admin') {
+        // Regular admins should not see super_admin users
+        roleQuery = roleQuery.neq('role', 'super_admin');
+      }
+      
+      const { data: rolesData, error: rolesError } = await roleQuery;
 
       if (rolesError) throw rolesError;
 
