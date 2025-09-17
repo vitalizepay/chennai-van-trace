@@ -107,18 +107,44 @@ serve(async (req) => {
       throw profileCheckError
     }
 
+    // Check if mobile number is already used by another user
+    let canUpdateMobile = true;
+    if (userData.phone) {
+      const { data: mobileCheck, error: mobileCheckError } = await supabaseAdmin
+        .from('profiles')
+        .select('user_id')
+        .or(`mobile.eq.${userData.phone},phone.eq.${userData.phone}`)
+        .neq('user_id', authData.user.id)
+        .limit(1)
+
+      if (mobileCheckError) {
+        console.error('Error checking mobile number:', mobileCheckError)
+        // Continue without mobile update if check fails
+        canUpdateMobile = false;
+      } else if (mobileCheck && mobileCheck.length > 0) {
+        console.log('Mobile number already exists for another user, skipping mobile update')
+        canUpdateMobile = false;
+      }
+    }
+
     if (existingProfile) {
       // Profile exists - update it
       console.log('Updating existing profile')
+      const updateData: any = {
+        email: userData.email,
+        full_name: userData.fullName,
+        status: 'approved'
+      }
+      
+      // Only update mobile if it's safe to do so
+      if (canUpdateMobile && userData.phone) {
+        updateData.mobile = userData.phone;
+        updateData.phone = userData.phone;
+      }
+      
       const { error: profileUpdateError } = await supabaseAdmin
         .from('profiles')
-        .update({
-          email: userData.email,
-          full_name: userData.fullName,
-          mobile: userData.phone,
-          phone: userData.phone,
-          status: 'approved'
-        })
+        .update(updateData)
         .eq('user_id', authData.user.id)
 
       if (profileUpdateError) {
@@ -129,16 +155,22 @@ serve(async (req) => {
     } else {
       // Profile doesn't exist - create it
       console.log('Creating new profile')
+      const insertData: any = {
+        user_id: authData.user.id,
+        email: userData.email,
+        full_name: userData.fullName,
+        status: 'approved'
+      }
+      
+      // Only add mobile if it's safe to do so
+      if (canUpdateMobile && userData.phone) {
+        insertData.mobile = userData.phone;
+        insertData.phone = userData.phone;
+      }
+      
       const { error: profileInsertError } = await supabaseAdmin
         .from('profiles')
-        .insert({
-          user_id: authData.user.id,
-          email: userData.email,
-          full_name: userData.fullName,
-          mobile: userData.phone,
-          phone: userData.phone,
-          status: 'approved'
-        })
+        .insert(insertData)
 
       if (profileInsertError) {
         console.error('Profile insert error:', profileInsertError)

@@ -978,11 +978,15 @@ const UserManagement = ({ language }: UserManagementProps) => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Mobile Number</label>
-            <Input
-              value={newUser.phone}
-              onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
-              placeholder="+919876543210"
-            />
+             <Input
+               value={newUser.phone}
+               onChange={(e) => setNewUser({
+                 ...newUser, 
+                 phone: e.target.value,
+                 mobile: e.target.value  // Keep both fields in sync
+               })}
+               placeholder="+919876543210"
+             />
                 </div>
                 
                 <div className="space-y-2">
