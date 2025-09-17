@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -159,8 +159,10 @@ const SchoolManagement = ({ language }: SchoolManagementProps) => {
   };
 
   const handleCreate = async () => {
+    console.log('handleCreate called with formData:', formData);
     try {
       if (!formData.name || !formData.location || !formData.address) {
+        console.log('Validation failed:', { name: formData.name, location: formData.location, address: formData.address });
         toast({
           title: t.error,
           description: "Please fill in all required fields",
@@ -169,6 +171,7 @@ const SchoolManagement = ({ language }: SchoolManagementProps) => {
         return;
       }
 
+      console.log('Attempting to insert school:', formData);
       const { error } = await supabase
         .from('schools')
         .insert([{
@@ -180,8 +183,12 @@ const SchoolManagement = ({ language }: SchoolManagementProps) => {
           status: formData.status
         }]);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase insert error:', error);
+        throw error;
+      }
 
+      console.log('School created successfully');
       toast({
         title: t.schoolCreated,
         description: `${formData.name} has been added successfully`,
@@ -288,9 +295,17 @@ const SchoolManagement = ({ language }: SchoolManagementProps) => {
           <Building className="h-6 w-6 text-primary" />
           <h2 className="text-2xl font-bold">{t.title}</h2>
         </div>
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <Dialog open={showCreateDialog} onOpenChange={(open) => {
+          console.log('Create dialog state changed:', open);
+          setShowCreateDialog(open);
+          if (!open) resetForm();
+        }}>
           <DialogTrigger asChild>
-            <Button className="gap-2" onClick={resetForm}>
+            <Button className="gap-2" onClick={() => {
+              console.log('Add school button clicked');
+              resetForm();
+              setShowCreateDialog(true);
+            }}>
               <Plus className="h-4 w-4" />
               {t.addSchool}
             </Button>
@@ -377,7 +392,14 @@ const SchoolManagement = ({ language }: SchoolManagementProps) => {
                 </div>
                 
                 <div className="flex gap-2">
-                  <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+                  <Dialog open={showEditDialog} onOpenChange={(open) => {
+                    console.log('Edit dialog state changed:', open);
+                    setShowEditDialog(open);
+                    if (!open) {
+                      setEditingSchool(null);
+                      resetForm();
+                    }
+                  }}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="sm" className="gap-1" onClick={() => handleEdit(school)}>
                         <Edit className="h-3 w-3" />
@@ -436,6 +458,9 @@ const SchoolManagement = ({ language }: SchoolManagementProps) => {
             <School className="h-5 w-5" />
             {isEdit ? t.editSchool : t.addSchool}
           </DialogTitle>
+          <DialogDescription>
+            {isEdit ? "Update the school information below" : "Fill in the details to add a new school"}
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">
