@@ -139,6 +139,17 @@ const DriverPasswordAuth = ({ userType, onSuccess }: DriverPasswordAuthProps) =>
                     title: "Password Reset Successful",
                     description: `Your temporary password is: ${result.tempPassword}. Please use this to login.`,
                     duration: 15000,
+                    action: (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(result.tempPassword);
+                          toast({ title: "Copied!", description: "Password copied to clipboard" });
+                        }}
+                      >
+                        Copy
+                      </Button>
+                    ),
                   });
                 } else {
                   toast({
