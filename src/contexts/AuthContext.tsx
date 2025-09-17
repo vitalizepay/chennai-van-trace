@@ -255,18 +255,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       console.log('Looking for user with mobile:', mobile);
       
-      // Find user by mobile
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('email, user_id')
-        .eq('mobile', mobile)
-        .maybeSingle();
+      // Use database function to get user by mobile (bypasses RLS)
+      const { data: users, error: profileError } = await supabase
+        .rpc('get_user_for_mobile_login', { _mobile: mobile });
 
-      console.log('Profile query result:', { profile, profileError });
+      console.log('Profile query result:', { users, profileError });
 
-      if (!profile) {
+      if (profileError) {
+        throw profileError;
+      }
+
+      if (!users || users.length === 0) {
         throw new Error('User not found with this mobile number');
       }
+
+      const profile = users[0];
 
       // Sign in with email/password
       const { error } = await supabase.auth.signInWithPassword({

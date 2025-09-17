@@ -265,6 +265,17 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_user_for_mobile_login: {
+        Args: { _mobile: string }
+        Returns: {
+          email: string
+          full_name: string
+          mobile: string
+          roles: string[]
+          status: Database["public"]["Enums"]["user_status"]
+          user_id: string
+        }[]
+      }
       get_user_status: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["user_status"]
