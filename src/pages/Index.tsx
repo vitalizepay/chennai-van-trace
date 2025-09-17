@@ -255,8 +255,8 @@ const RoleCard = ({ role, title, description, icon, color, onLogin, texts }: Rol
         <div className="space-y-3">
           <Input 
             id={`${role}-email`} 
-            type="text" 
-            placeholder="User Name"
+            type="tel" 
+            placeholder="Mobile Number"
             className="h-12 text-base border-2 border-gray-200 rounded-lg focus:border-primary"
           />
         </div>
