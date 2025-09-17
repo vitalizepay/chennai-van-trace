@@ -42,6 +42,7 @@ const SchoolManagement = ({ language }: SchoolManagementProps) => {
   const [schools, setSchools] = useState<SchoolData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingSchool, setEditingSchool] = useState<SchoolData | null>(null);
   const [schoolToDelete, setSchoolToDelete] = useState<SchoolData | null>(null);
   
@@ -209,6 +210,7 @@ const SchoolManagement = ({ language }: SchoolManagementProps) => {
       contact_phone: school.contact_phone || '',
       status: school.status
     });
+    setShowEditDialog(true);
   };
 
   const handleUpdate = async () => {
@@ -234,6 +236,7 @@ const SchoolManagement = ({ language }: SchoolManagementProps) => {
         description: `${formData.name} has been updated successfully`,
       });
 
+      setShowEditDialog(false);
       setEditingSchool(null);
       resetForm();
       fetchSchools();
@@ -374,7 +377,7 @@ const SchoolManagement = ({ language }: SchoolManagementProps) => {
                 </div>
                 
                 <div className="flex gap-2">
-                  <Dialog>
+                  <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="sm" className="gap-1" onClick={() => handleEdit(school)}>
                         <Edit className="h-3 w-3" />
@@ -490,7 +493,12 @@ const SchoolManagement = ({ language }: SchoolManagementProps) => {
             <Button 
               variant="outline" 
               onClick={() => {
-                isEdit ? setEditingSchool(null) : setShowCreateDialog(false);
+                if (isEdit) {
+                  setShowEditDialog(false);
+                  setEditingSchool(null);
+                } else {
+                  setShowCreateDialog(false);
+                }
                 resetForm();
               }}
             >
