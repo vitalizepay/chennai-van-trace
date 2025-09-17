@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { 
   Users, 
   Check, 
@@ -57,6 +58,7 @@ interface SuperAdminUserManagementProps {
 }
 
 const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) => {
+  const { user } = useAuth();
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<AdminUser[]>([]);
@@ -330,18 +332,26 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
         return;
       }
 
-      const { data, error } = await supabase.rpc('create_admin_user', {
-        _email: formData.email,
-        _mobile: formData.mobile,
-        _full_name: formData.full_name,
-        _school_id: formData.school_id === "none" || !formData.school_id ? null : formData.school_id
+      // Use the edge function to create the user
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          userData: {
+            email: formData.email,
+            password: formData.mobile, // Use mobile as temporary password
+            fullName: formData.full_name,
+            phone: formData.mobile,
+            role: 'admin',
+            createdBy: user?.id || null,
+            schoolId: formData.school_id === "none" || !formData.school_id ? null : formData.school_id
+          }
+        }
       });
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: `Admin user ${formData.full_name} has been created successfully`,
+        description: `Admin user ${formData.full_name} has been created successfully. They can login with their email and mobile number as password.`,
       });
 
       setShowCreateDialog(false);
