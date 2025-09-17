@@ -64,6 +64,8 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
   const [filteredUsers, setFilteredUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [passwordInfo, setPasswordInfo] = useState<{password: string, userName: string, userEmail: string} | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [schoolFilter, setSchoolFilter] = useState<string>("all");
@@ -350,10 +352,13 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
 
       const tempPassword = data?.tempPassword;
 
-      toast({
-        title: "Success",
-        description: `Admin user ${formData.full_name} created successfully. Temporary password: ${tempPassword}`,
+      // Show password in dialog for easy copying
+      setPasswordInfo({
+        password: tempPassword,
+        userName: formData.full_name,
+        userEmail: formData.email
       });
+      setShowPasswordDialog(true);
 
       setShowCreateDialog(false);
       resetForm();
@@ -368,7 +373,7 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
     }
   };
 
-  const resetPassword = async (userId: string, userName: string) => {
+  const resetPassword = async (userId: string, userName: string, userEmail: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('reset-user-password', {
         body: { userId }
@@ -376,16 +381,41 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
 
       if (error) throw error;
 
-      toast({
-        title: "Password Reset",
-        description: `Password reset for ${userName}. New temporary password: ${data.tempPassword}`,
+      // Show password in dialog for easy copying
+      setPasswordInfo({
+        password: data.tempPassword,
+        userName: userName,
+        userEmail: userEmail
       });
+      setShowPasswordDialog(true);
     } catch (error: any) {
       console.error('Error resetting password:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to reset password",
         variant: "destructive",
+      });
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied!",
+        description: "Password copied to clipboard",
+      });
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      toast({
+        title: "Copied!",
+        description: "Password copied to clipboard",
       });
     }
   };
@@ -598,7 +628,7 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
                     <Button 
                       size="sm" 
                       variant="outline" 
-                      onClick={() => resetPassword(user.user_id, user.full_name)}
+                      onClick={() => resetPassword(user.user_id, user.full_name, user.email)}
                       title="Reset Password"
                     >
                       🔑
@@ -695,6 +725,50 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
               </Button>
               <Button onClick={handleCreate}>
                 {t.create}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Display Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Password Generated</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium">User Details</Label>
+              <div className="mt-1 text-sm text-muted-foreground">
+                <div><strong>Name:</strong> {passwordInfo?.userName}</div>
+                <div><strong>Email:</strong> {passwordInfo?.userEmail}</div>
+              </div>
+            </div>
+            
+            <div>
+              <Label className="text-sm font-medium">Temporary Password</Label>
+              <div className="mt-2 p-3 bg-muted rounded-md font-mono text-sm select-all border">
+                {passwordInfo?.password}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Click the password above to select all, or use the copy button below
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => copyToClipboard(passwordInfo?.password || '')}
+                className="flex-1"
+              >
+                📋 Copy Password
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowPasswordDialog(false)}
+                className="flex-1"
+              >
+                Close
               </Button>
             </div>
           </div>
