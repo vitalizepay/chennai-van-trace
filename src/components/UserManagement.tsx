@@ -37,6 +37,7 @@ interface User {
   status: 'pending' | 'approved' | 'rejected' | 'suspended';
   created_at: string;
   role: string | null;
+  all_roles?: string[];
   parent_details?: any;
   driver_details?: any;
   activity_logs?: any[];
@@ -178,15 +179,10 @@ const UserManagement = ({ language }: UserManagementProps) => {
 
       if (profilesError) throw profilesError;
 
-      // Then fetch roles for all users, filtering based on current user's role
-      let roleQuery = supabase.from('user_roles').select('user_id, role');
-      
-      if (userRole !== 'super_admin') {
-        // Regular admins should not see super_admin users
-        roleQuery = roleQuery.neq('role', 'super_admin');
-      }
-      
-      const { data: rolesData, error: rolesError } = await roleQuery;
+      // Fetch all roles for all users
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
 
       if (rolesError) throw rolesError;
 
@@ -227,13 +223,19 @@ const UserManagement = ({ language }: UserManagementProps) => {
           status: profile.status,
           created_at: profile.created_at,
           role: userRoles[0]?.role || null,
+          all_roles: userRoles.map(r => r.role),
           parent_details: parentDetails,
           driver_details: driverDetails,
           activity_logs: activityLogs
         };
       }) || [];
 
-      setUsers(formattedUsers);
+      // Filter out super admin users if current user is not super admin
+      const filteredUsers = userRole === 'super_admin' 
+        ? formattedUsers 
+        : formattedUsers.filter(user => !user.all_roles.includes('super_admin'));
+
+      setUsers(filteredUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
