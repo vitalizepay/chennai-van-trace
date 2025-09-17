@@ -337,7 +337,6 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
         body: {
           userData: {
             email: formData.email,
-            password: formData.mobile, // Use mobile as temporary password
             fullName: formData.full_name,
             phone: formData.mobile,
             role: 'admin',
@@ -349,9 +348,11 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
 
       if (error) throw error;
 
+      const tempPassword = data?.tempPassword;
+
       toast({
         title: "Success",
-        description: `Admin user ${formData.full_name} has been created successfully. They can login with their email and mobile number as password.`,
+        description: `Admin user ${formData.full_name} created successfully. Temporary password: ${tempPassword}`,
       });
 
       setShowCreateDialog(false);
@@ -362,6 +363,28 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
       toast({
         title: "Error",
         description: error.message || "Failed to create admin user",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const resetPassword = async (userId: string, userName: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('reset-user-password', {
+        body: { userId }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password Reset",
+        description: `Password reset for ${userName}. New temporary password: ${data.tempPassword}`,
+      });
+    } catch (error: any) {
+      console.error('Error resetting password:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reset password",
         variant: "destructive",
       });
     }
@@ -572,6 +595,14 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
                         <UserCheck className="h-3 w-3" />
                       </Button>
                     )}
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => resetPassword(user.user_id, user.full_name)}
+                      title="Reset Password"
+                    >
+                      🔑
+                    </Button>
                   </div>
                 </div>
               </div>

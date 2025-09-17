@@ -25,10 +25,13 @@ serve(async (req) => {
 
     const { userData } = await req.json()
 
+    // Generate a secure temporary password if not provided
+    const tempPassword = userData.password || Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8).toUpperCase() + '123!'
+
     // Create user in Supabase Auth with admin client
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: userData.email,
-      password: userData.password,
+      password: tempPassword,
       email_confirm: true,
       user_metadata: {
         full_name: userData.fullName
@@ -91,7 +94,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        user: authData.user 
+        user: authData.user,
+        tempPassword: tempPassword
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
