@@ -279,14 +279,22 @@ const RoleCard = ({ role, title, description, icon, color, onLogin, texts }: Rol
           </button>
 
           <div className="space-y-3 text-center">
-            <button className="text-primary font-semibold text-sm">
+            <button 
+              className="text-primary font-semibold text-sm"
+              onClick={() => window.location.href = '/auth'}
+              type="button"
+            >
               Forgot Password?
             </button>
             <div className="flex items-center gap-2 justify-center">
               <input type="checkbox" className="w-4 h-4" />
               <span className="text-sm text-gray-600">Remember me</span>
             </div>
-            <button className="text-primary font-semibold text-sm">
+            <button 
+              className="text-primary font-semibold text-sm"
+              onClick={() => window.location.href = '/auth'}
+              type="button"
+            >
               Forgot Username?
             </button>
           </div>
