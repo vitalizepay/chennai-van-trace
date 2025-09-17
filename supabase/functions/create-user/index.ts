@@ -92,25 +92,48 @@ serve(async (req) => {
       console.log('New auth user created successfully:', createData.user.id)
     }
 
-    // Update or create the profile
-    console.log('Updating/creating profile for user:', authData.user.id)
-    const { error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .upsert({
-        user_id: authData.user.id,
-        email: userData.email,
-        full_name: userData.fullName,
-        mobile: userData.phone,
-        phone: userData.phone,
-        status: 'approved'
-      })
+    // Handle profile creation/update properly
+    console.log('Handling profile for user:', authData.user.id)
+    
+    if (isExistingUser) {
+      // Update existing profile
+      console.log('Updating existing profile')
+      const { error: profileUpdateError } = await supabaseAdmin
+        .from('profiles')
+        .update({
+          email: userData.email,
+          full_name: userData.fullName,
+          mobile: userData.phone,
+          phone: userData.phone,
+          status: 'approved'
+        })
+        .eq('user_id', authData.user.id)
 
-    if (profileError) {
-      console.error('Profile upsert error:', profileError)
-      throw profileError
+      if (profileUpdateError) {
+        console.error('Profile update error:', profileUpdateError)
+        throw profileUpdateError
+      }
+      console.log('Profile updated successfully')
+    } else {
+      // Create new profile
+      console.log('Creating new profile')
+      const { error: profileInsertError } = await supabaseAdmin
+        .from('profiles')
+        .insert({
+          user_id: authData.user.id,
+          email: userData.email,
+          full_name: userData.fullName,
+          mobile: userData.phone,
+          phone: userData.phone,
+          status: 'approved'
+        })
+
+      if (profileInsertError) {
+        console.error('Profile insert error:', profileInsertError)
+        throw profileInsertError
+      }
+      console.log('Profile created successfully')
     }
-
-    console.log('Profile updated/created successfully')
 
     // Handle school assignment for admin role
     let schoolId = null
