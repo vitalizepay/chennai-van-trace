@@ -41,7 +41,7 @@ const SchoolAdminAuth = ({ onSuccess }: SchoolAdminAuthProps) => {
 
     setLoading(true);
     try {
-      const { error } = await signInWithMobilePassword(mobile, password);
+      const { error } = await signInWithMobilePassword(mobile, password, 'admin');
       if (error) {
         toast({
           title: "Login Failed",
