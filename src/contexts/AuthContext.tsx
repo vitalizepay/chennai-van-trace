@@ -288,14 +288,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       const profile = users[0];
+      console.log('Found user profile for login:', {
+        userId: profile.user_id,
+        email: profile.email,
+        mobile: profile.mobile,
+        roles: profile.roles,
+        status: profile.status
+      });
 
       // Sign in with email/password
+      console.log('Attempting Supabase auth with email:', profile.email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email: profile.email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase auth error:', error);
+        throw error;
+      }
+
+      console.log('Supabase auth successful for user:', data.user?.id);
 
       // Wait for auth state to update before returning
       if (data.user) {
@@ -305,11 +318,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Create device session for auto-login
         await createDeviceSession(profile.user_id);
         
-        // Fetch profile with intended role
-        await fetchUserProfile(data.user.id, intendedRole);
-        
-        // Wait a bit for state to propagate
-        await new Promise(resolve => setTimeout(resolve, 100));
+      // Fetch profile with intended role
+      await fetchUserProfile(data.user.id, intendedRole);
+      
+      // Check if user needs password change immediately after login
+      await checkTempPassword();
+      
+      // Wait a bit for state to propagate
+      await new Promise(resolve => setTimeout(resolve, 100));
       }
       
       return { error: null };
@@ -464,7 +480,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           .single();
           
         if (profile) {
-          // Check if user was created recently (within 24 hours) and profile hasn't been significantly updated
+          // Check if user was created recently (within 48 hours) and profile hasn't been significantly updated
           const userCreated = new Date(user.created_at);
           const profileUpdated = new Date(profile.updated_at);
           const now = new Date();
@@ -472,12 +488,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const timeSinceUpdate = (now.getTime() - profileUpdated.getTime()) / (1000 * 60); // minutes
           
           // Only prompt for password change if:
-          // 1. User was created recently (within 24 hours)
-          // 2. Profile was updated very recently (less than 5 minutes ago) - indicating fresh temp password
-          const isRecentUser = userAgeHours < 24;
-          const hasRecentUpdate = timeSinceUpdate < 5;
+          // 1. User was created recently (within 48 hours) 
+          // 2. Profile was updated recently (less than 24 hours ago) - indicating fresh temp password
+          // 3. Or if the user was created very recently (less than 1 hour) regardless of profile update time
+          const isRecentUser = userAgeHours < 48;
+          const hasRecentUpdate = timeSinceUpdate < (24 * 60); // 24 hours in minutes
+          const isVeryNewUser = userAgeHours < 1; // Less than 1 hour old
           
-          const needsChange = isRecentUser && hasRecentUpdate;
+          const needsChange = (isRecentUser && hasRecentUpdate) || isVeryNewUser;
           setNeedsPasswordChange(needsChange);
           return needsChange;
         }
