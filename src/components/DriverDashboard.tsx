@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,8 +23,9 @@ interface Student {
 }
 
 const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const [tripActive, setTripActive] = useState(false);
+  const [vanId, setVanId] = useState<string | null>(null);
   const [students, setStudents] = useState<Student[]>([
     { id: "1", name: "Aarav Kumar", stop: "Anna Nagar", boarded: false, dropped: false },
     { id: "2", name: "Priya Sharma", stop: "T. Nagar", boarded: false, dropped: false },
@@ -67,6 +69,65 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
   };
 
   const t = texts[language];
+
+  // Get driver's assigned van
+  useEffect(() => {
+    const fetchDriverVan = async () => {
+      if (!user?.id) return;
+      
+      const { data, error } = await supabase
+        .from('vans')
+        .select('id')
+        .eq('driver_id', user.id)
+        .single();
+      
+      if (data && !error) {
+        setVanId(data.id);
+      }
+    };
+
+    fetchDriverVan();
+  }, [user?.id]);
+
+  // Location tracking when trip is active
+  useEffect(() => {
+    if (!tripActive || !vanId) return;
+
+    const updateLocation = async () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            
+            await supabase
+              .from('vans')
+              .update({
+                current_lat: latitude,
+                current_lng: longitude,
+                last_location_update: new Date().toISOString()
+              })
+              .eq('id', vanId);
+          },
+          (error) => {
+            console.error('Error getting location:', error);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000
+          }
+        );
+      }
+    };
+
+    // Update location immediately when trip starts
+    updateLocation();
+
+    // Then update every 10 seconds while trip is active
+    const locationInterval = setInterval(updateLocation, 10000);
+
+    return () => clearInterval(locationInterval);
+  }, [tripActive, vanId]);
 
   const handleTripToggle = () => {
     setTripActive(!tripActive);

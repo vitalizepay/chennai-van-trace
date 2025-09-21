@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, MapPin, Clock, AlertTriangle, UserCheck, UserX, Bell, BellRing, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import SOSButton from "@/components/SOSButton";
-import GoogleMap from "@/components/GoogleMap";
+import EnhancedGoogleMap from "@/components/EnhancedGoogleMap";
 import { toast } from "@/hooks/use-toast";
 
 interface ParentDashboardProps {
@@ -150,7 +150,7 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
             <CardTitle className="text-base">{t.liveTracking}</CardTitle>
           </CardHeader>
           <CardContent>
-            <GoogleMap height="h-40" />
+            <EnhancedGoogleMap height="h-40" />
           </CardContent>
         </Card>
 
