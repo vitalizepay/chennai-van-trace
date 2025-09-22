@@ -79,7 +79,7 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
         .from('vans')
         .select('id')
         .eq('driver_id', user.id)
-        .single();
+        .maybeSingle();
       
       if (data && !error) {
         setVanId(data.id);
