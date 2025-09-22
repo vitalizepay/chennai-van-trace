@@ -67,7 +67,7 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
 
   const t = texts[language];
 
-  // Get driver's assigned van and students
+  // Get driver's assigned van and students - force refresh
   useEffect(() => {
     const fetchDriverData = async () => {
       if (!user?.id) {

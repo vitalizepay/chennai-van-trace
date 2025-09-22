@@ -24,7 +24,7 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
   const [vanData, setVanData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch student and van data
+  // Fetch student and van data - force refresh
   useEffect(() => {
     if (!user) {
       setLoading(false);
