@@ -125,50 +125,6 @@ const Index = () => {
           <Languages className="h-4 w-4" />
           {language === "en" ? "தமிழ்" : "English"}
         </Button>
-        
-        {/* Temporary password reset button for testing */}
-        <button 
-          onClick={async () => {
-            console.log('Resetting test passwords...');
-            try {
-              const { supabase } = await import('@/integrations/supabase/client');
-              
-              // Driver user
-              const driverResult = await supabase.functions.invoke('reset-user-password', {
-                body: { 
-                  userId: 'b390dcb5-60b3-427e-abcf-ad27626321c9',
-                  customPassword: 'password123'
-                }
-              });
-              console.log('Driver password result:', driverResult);
-              
-              // Parent user
-              const parentResult = await supabase.functions.invoke('reset-user-password', {
-                body: { 
-                  userId: 'b1eab585-bb9d-4cd9-8b9e-24ef51fb72bd',
-                  customPassword: 'password123'
-                }
-              });
-              console.log('Parent password result:', parentResult);
-              
-              alert('Passwords reset!\nDriver mobile: 8428334556 / password: password123\nParent mobile: 8428334557 / password: password123');
-            } catch (error) {
-              console.error('Error resetting passwords:', error);
-              alert('Error resetting passwords: ' + error.message);
-            }
-          }}
-          style={{
-            background: '#dc2626',
-            color: 'white',
-            padding: '8px 12px',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: '12px',
-            cursor: 'pointer'
-          }}
-        >
-          RESET PASSWORDS
-        </button>
       </header>
 
       {/* Main Content */}
@@ -355,10 +311,10 @@ const RoleCard = ({ role, title, description, icon, color, onLogin, texts }: Rol
           <div className="text-center">
             <button 
               className="text-primary font-semibold text-sm block mx-auto mb-2"
-              onClick={() => navigate('/auth')}
+              onClick={() => alert('Please contact school admin')}
               type="button"
             >
-              Need help? Login or Reset Password
+              Login or Reset Password
             </button>
             
             <button 
