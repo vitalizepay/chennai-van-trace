@@ -51,10 +51,10 @@ const Index = () => {
 
     return (
       <div className="min-h-screen bg-background">
-        {userRole === "parent" && <ParentDashboard language={language} onBack={() => setCurrentRole(null)} />}
-        {userRole === "driver" && <DriverDashboard language={language} onBack={() => setCurrentRole(null)} />}
-        {userRole === "admin" && <AdminDashboard language={language} onBack={() => setCurrentRole(null)} />}
-        {userRole === "super_admin" && <SuperAdminDashboard language={language} onBack={() => setCurrentRole(null)} />}
+        {userRole === "parent" && <ParentDashboard language={language} onBack={() => navigate('/')} />}
+        {userRole === "driver" && <DriverDashboard language={language} onBack={() => navigate('/')} />}
+        {userRole === "admin" && <AdminDashboard language={language} onBack={() => navigate('/')} />}
+        {userRole === "super_admin" && <SuperAdminDashboard language={language} onBack={() => navigate('/')} />}
       </div>
     );
   }
@@ -105,18 +105,6 @@ const Index = () => {
   };
 
   const t = texts[language];
-
-  // Show login interface only if user is not authenticated
-  if (currentRole) {
-    return (
-      <div className="min-h-screen bg-background">
-        {currentRole === "parent" && <ParentDashboard language={language} onBack={() => setCurrentRole(null)} />}
-        {currentRole === "driver" && <DriverDashboard language={language} onBack={() => setCurrentRole(null)} />}
-        {currentRole === "admin" && <AdminDashboard language={language} onBack={() => setCurrentRole(null)} />}
-        {currentRole === "super_admin" && <SuperAdminDashboard language={language} onBack={() => setCurrentRole(null)} />}
-      </div>
-    );
-  }
 
   return (
     <div 
