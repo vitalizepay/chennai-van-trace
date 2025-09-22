@@ -275,6 +275,41 @@ interface RoleCardProps {
 
 const RoleCard = ({ role, title, description, icon, color, onLogin, texts }: RoleCardProps) => {
   const navigate = useNavigate();
+  const { signInWithMobilePassword } = useAuth();
+  const [mobile, setMobile] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!mobile || !password) {
+      alert('Please enter both mobile number and password');
+      return;
+    }
+
+    if (!/^[6-9]\d{9}$/.test(mobile)) {
+      alert('Please enter a valid 10-digit mobile number');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      console.log(`Login attempted for ${role} with mobile: ${mobile}`);
+      const { error } = await signInWithMobilePassword(mobile, password, role);
+      
+      if (error) {
+        console.error('Login error:', error);
+        alert(`Login failed: ${error.message}`);
+      } else {
+        console.log(`Login successful for ${role}`);
+        // The auth context will handle navigation to the dashboard
+      }
+    } catch (err) {
+      console.error('Unexpected login error:', err);
+      alert('An unexpected error occurred during login');
+    } finally {
+      setLoading(false);
+    }
+  };
   
   return (
     <Card className="mt-4 bg-white/95 backdrop-blur-sm border-white/30 shadow-xl">
@@ -288,9 +323,11 @@ const RoleCard = ({ role, title, description, icon, color, onLogin, texts }: Rol
       <CardContent className="space-y-5">
         <div className="space-y-3">
           <Input 
-            id={`${role}-email`} 
+            id={`${role}-mobile`} 
             type="tel" 
             placeholder="Mobile Number"
+            value={mobile}
+            onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
             className="h-12 text-base border-2 border-gray-200 rounded-lg focus:border-primary"
           />
         </div>
@@ -299,21 +336,20 @@ const RoleCard = ({ role, title, description, icon, color, onLogin, texts }: Rol
             id={`${role}-password`} 
             type="password" 
             placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             className="h-12 text-base border-2 border-gray-200 rounded-lg focus:border-primary"
           />
         </div>
         
         <div className="space-y-4 pt-2">
           <button 
-            className="w-full h-12 text-white font-bold text-base rounded-lg shadow-lg"
+            className="w-full h-12 text-white font-bold text-base rounded-lg shadow-lg disabled:opacity-50"
             style={{ background: 'var(--gradient-button)' }}
-            onClick={() => {
-              console.log(`Login attempted for ${role}`);
-              // Handle login directly here instead of redirecting
-              onLogin(role);
-            }}
+            onClick={handleLogin}
+            disabled={loading}
           >
-            {texts.login}
+            {loading ? 'Signing In...' : texts.login}
           </button>
 
           <div className="text-center">
