@@ -7,7 +7,7 @@ import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import GoogleMap from "./GoogleMap";
+import EnhancedGoogleMap from "./EnhancedGoogleMap";
 import UserManagement from "./UserManagement";
 
 interface AdminDashboardProps {
@@ -352,7 +352,7 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <GoogleMap height="h-48" className="rounded-lg" />
+                    <EnhancedGoogleMap height="h-48" className="rounded-lg" />
                   </CardContent>
                 </Card>
               </CardContent>

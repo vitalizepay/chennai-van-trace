@@ -16,8 +16,9 @@ interface DriverDashboardProps {
 
 interface Student {
   id: string;
-  name: string;
-  stop: string;
+  full_name: string;
+  pickup_stop: string;
+  grade: string;
   boarded: boolean;
   dropped: boolean;
 }
@@ -26,12 +27,8 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
   const { signOut, user } = useAuth();
   const [tripActive, setTripActive] = useState(false);
   const [vanId, setVanId] = useState<string | null>(null);
-  const [students, setStudents] = useState<Student[]>([
-    { id: "1", name: "Aarav Kumar", stop: "Anna Nagar", boarded: false, dropped: false },
-    { id: "2", name: "Priya Sharma", stop: "T. Nagar", boarded: false, dropped: false },
-    { id: "3", name: "Karthik Raja", stop: "Velachery", boarded: false, dropped: false },
-    { id: "4", name: "Sneha Patel", stop: "Adyar", boarded: false, dropped: false },
-  ]);
+  const [vanData, setVanData] = useState<any>(null);
+  const [students, setStudents] = useState<Student[]>([]);
 
   const texts = {
     en: {
@@ -70,9 +67,9 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
 
   const t = texts[language];
 
-  // Get driver's assigned van
+  // Get driver's assigned van and students
   useEffect(() => {
-    const fetchDriverVan = async () => {
+    const fetchDriverData = async () => {
       if (!user?.id) {
         console.log('No user ID available for van lookup');
         return;
@@ -80,25 +77,39 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
       
       console.log('Fetching van for driver:', user.id);
       
-      const { data, error } = await supabase
+      const { data: vanData, error: vanError } = await supabase
         .from('vans')
         .select('id, van_number, route_name')
         .eq('driver_id', user.id)
         .maybeSingle();
       
-      console.log('Van fetch result:', { data, error });
+      console.log('Van fetch result:', { vanData, vanError });
       
-      if (data && !error) {
-        console.log('Driver assigned to van:', data);
-        setVanId(data.id);
-      } else if (error) {
-        console.error('Error fetching driver van:', error);
+      if (vanData && !vanError) {
+        console.log('Driver assigned to van:', vanData);
+        setVanId(vanData.id);
+        setVanData(vanData);
+        
+        // Fetch students for this van
+        const { data: studentsData, error: studentsError } = await supabase
+          .from('students')
+          .select('id, full_name, pickup_stop, grade, boarded, dropped')
+          .eq('van_id', vanData.id)
+          .eq('status', 'active');
+          
+        if (studentsData && !studentsError) {
+          setStudents(studentsData);
+        } else if (studentsError) {
+          console.error('Error fetching students:', studentsError);
+        }
+      } else if (vanError) {
+        console.error('Error fetching driver van:', vanError);
       } else {
         console.log('No van assigned to driver:', user.id);
       }
     };
 
-    fetchDriverVan();
+    fetchDriverData();
   }, [user?.id]);
 
   // Location tracking when trip is active
@@ -221,10 +232,32 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
     }
   };
 
-  const updateStudentStatus = (studentId: string, field: "boarded" | "dropped") => {
+  const updateStudentStatus = async (studentId: string, field: "boarded" | "dropped") => {
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
+    
+    const newValue = !student[field];
+    
+    // Update in database
+    const { error } = await supabase
+      .from('students')
+      .update({ [field]: newValue })
+      .eq('id', studentId);
+      
+    if (error) {
+      console.error('Error updating student status:', error);
+      toast({
+        title: "Update Failed",
+        description: "Could not update student status",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Update local state
     setStudents(prev => prev.map(student => 
       student.id === studentId 
-        ? { ...student, [field]: !student[field] }
+        ? { ...student, [field]: newValue }
         : student
     ));
   };
@@ -244,7 +277,7 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
         </Button>
         <div className="flex-1">
           <h1 className="text-lg font-semibold">{t.title}</h1>
-          <p className="text-sm opacity-90">{t.driverName} • {t.vanNumber}</p>
+          <p className="text-sm opacity-90">{vanData?.van_number || 'No Van Assigned'} • {vanData?.route_name || 'No Route'}</p>
         </div>
         <Button variant="ghost" size="sm" className="text-driver-foreground" onClick={signOut}>
           <LogOut className="h-4 w-4" />
@@ -298,7 +331,7 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
           </CardHeader>
           <CardContent>
             <div className="bg-muted rounded-lg p-3">
-              <p className="text-sm">{t.routeStops}</p>
+              <p className="text-sm">{vanData?.route_name || 'No route assigned'}</p>
             </div>
           </CardContent>
         </Card>
@@ -315,8 +348,8 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
             {students.map((student) => (
               <div key={student.id} className="flex items-center justify-between p-3 bg-accent rounded-lg">
                 <div className="flex-1">
-                  <p className="font-medium">{student.name}</p>
-                  <p className="text-sm text-muted-foreground">{student.stop}</p>
+                  <p className="font-medium">{student.full_name}</p>
+                  <p className="text-sm text-muted-foreground">{student.pickup_stop} • {student.grade}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   {getStudentStatusBadge(student)}

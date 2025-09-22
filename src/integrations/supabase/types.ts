@@ -221,6 +221,72 @@ export type Database = {
         }
         Relationships: []
       }
+      students: {
+        Row: {
+          boarded: boolean | null
+          created_at: string
+          dropped: boolean | null
+          emergency_contact: string | null
+          full_name: string
+          grade: string | null
+          id: string
+          medical_info: string | null
+          parent_id: string | null
+          pickup_stop: string
+          school_id: string
+          status: string
+          updated_at: string
+          van_id: string | null
+        }
+        Insert: {
+          boarded?: boolean | null
+          created_at?: string
+          dropped?: boolean | null
+          emergency_contact?: string | null
+          full_name: string
+          grade?: string | null
+          id?: string
+          medical_info?: string | null
+          parent_id?: string | null
+          pickup_stop: string
+          school_id: string
+          status?: string
+          updated_at?: string
+          van_id?: string | null
+        }
+        Update: {
+          boarded?: boolean | null
+          created_at?: string
+          dropped?: boolean | null
+          emergency_contact?: string | null
+          full_name?: string
+          grade?: string | null
+          id?: string
+          medical_info?: string | null
+          parent_id?: string | null
+          pickup_stop?: string
+          school_id?: string
+          status?: string
+          updated_at?: string
+          van_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "students_van_id_fkey"
+            columns: ["van_id"]
+            isOneToOne: false
+            referencedRelation: "vans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_activity_logs: {
         Row: {
           action: string
