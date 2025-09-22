@@ -263,7 +263,11 @@ const RoleCard = ({ role, title, description, icon, color, onLogin, texts }: Rol
           <button 
             className="w-full h-12 text-white font-bold text-base rounded-lg shadow-lg"
             style={{ background: 'var(--gradient-button)' }}
-            onClick={() => navigate('/auth')}
+            onClick={() => {
+              console.log(`Login attempted for ${role}`);
+              // Handle login directly here instead of redirecting
+              onLogin(role);
+            }}
           >
             {texts.login}
           </button>
