@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import SOSButton from "@/components/SOSButton";
 import EnhancedGoogleMap from "@/components/EnhancedGoogleMap";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ParentDashboardProps {
   language: "en" | "ta";
@@ -14,17 +15,123 @@ interface ParentDashboardProps {
 }
 
 const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const [childStatus, setChildStatus] = useState<"absent" | "present">("present");
   const [vanStatus, setVanStatus] = useState<"approaching" | "arrived" | "en_route">("en_route");
   const [eta, setETA] = useState("12 mins");
   const [notifications, setNotifications] = useState<string[]>([]);
+  const [studentData, setStudentData] = useState<any[]>([]);
+  const [vanData, setVanData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch student and van data
+  useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchStudentData = async () => {
+      try {
+        // Fetch students linked to this parent
+        const { data: students, error: studentsError } = await supabase
+          .from('students')
+          .select(`
+            *,
+            vans (
+              *,
+              driver_details!inner (*)
+            )
+          `)
+          .eq('parent_id', user.id);
+
+        if (studentsError) {
+          console.error('Error fetching students:', studentsError);
+          return;
+        }
+
+        if (students && students.length > 0) {
+          setStudentData(students);
+          
+          // Get van data from the first student (assuming single van per parent)
+          if (students[0].vans) {
+            setVanData(students[0].vans);
+          }
+        } else {
+          // If no students linked to parent, try to find by mobile number pattern
+          // This is a fallback for existing data
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('mobile, full_name')
+            .eq('user_id', user.id)
+            .single();
+
+          if (profile?.full_name) {
+            // Try to find students with similar name pattern
+            const { data: potentialStudents } = await supabase
+              .from('students')
+              .select(`
+                *,
+                vans (
+                  *,
+                  driver_details!inner (*)
+                )
+              `)
+              .ilike('full_name', `%${profile.full_name.split(' ')[0]}%`)
+              .limit(3);
+
+            if (potentialStudents && potentialStudents.length > 0) {
+              setStudentData(potentialStudents);
+              if (potentialStudents[0].vans) {
+                setVanData(potentialStudents[0].vans);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error in fetchStudentData:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudentData();
+  }, [user]);
+
+  const handleChildStatusUpdate = async (studentId: string, status: "absent" | "present") => {
+    try {
+      const { error } = await supabase
+        .from('students')
+        .update({ 
+          boarded: status === "present",
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', studentId)
+        .eq('parent_id', user?.id);
+
+      if (error) {
+        toast({
+          title: "Update Failed",
+          description: "Could not update attendance status",
+          variant: "destructive",
+        });
+      } else {
+        setChildStatus(status);
+        toast({
+          title: "Attendance Updated",
+          description: `Child marked as ${status}`,
+        });
+      }
+    } catch (error) {
+      console.error('Error updating attendance:', error);
+    }
+  };
 
   const texts = {
     en: {
       title: "Parent Dashboard",
-      childName: "Aarav Kumar",
-      vanNumber: "VAN-001",
+      childName: studentData.length > 0 ? studentData[0].full_name : "Loading...",
+      vanNumber: vanData ? vanData.van_number : "VAN-001",
       currentStatus: "Current Status",
       estimatedArrival: "Estimated Arrival",
       liveTracking: "Live Van Tracking",
@@ -38,8 +145,8 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
     },
     ta: {
       title: "பெற்றோர் டாஷ்போர்டு",
-      childName: "ஆரவ் குமார்",
-      vanNumber: "VAN-001",
+      childName: studentData.length > 0 ? studentData[0].full_name : "Loading...",
+      vanNumber: vanData ? vanData.van_number : "VAN-001",
       currentStatus: "தற்போதைய நிலை",
       estimatedArrival: "வருகை நேரம்",
       liveTracking: "நேரடி வேன் கண்காணிப்பு",
@@ -157,29 +264,45 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
         {/* Child Attendance */}
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <span className="font-medium">Child Attendance Today</span>
-              <div className="flex gap-2">
-                <Button
-                  variant={childStatus === "present" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setChildStatus("present")}
-                  className="gap-2"
-                >
-                  <UserCheck className="h-4 w-4" />
-                  {childStatus === "present" ? "Present" : t.markPresent}
-                </Button>
-                <Button
-                  variant={childStatus === "absent" ? "destructive" : "outline"}
-                  size="sm"
-                  onClick={() => setChildStatus("absent")}
-                  className="gap-2"
-                >
-                  <UserX className="h-4 w-4" />
-                  {childStatus === "absent" ? "Absent" : t.markAbsent}
-                </Button>
+            {studentData.length > 0 ? (
+              <div className="space-y-4">
+                {studentData.map((student, index) => (
+                  <div key={student.id} className="flex items-center justify-between p-3 bg-accent rounded-lg">
+                    <div>
+                      <p className="font-medium">{student.full_name}</p>
+                      <p className="text-sm text-muted-foreground">{student.grade} • {student.pickup_stop}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant={student.boarded ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleChildStatusUpdate(student.id, student.boarded ? "absent" : "present")}
+                        className="gap-2"
+                      >
+                        <UserCheck className="h-4 w-4" />
+                        {student.boarded ? "Present" : t.markPresent}
+                      </Button>
+                      <Button
+                        variant={!student.boarded ? "destructive" : "outline"}
+                        size="sm"
+                        onClick={() => handleChildStatusUpdate(student.id, student.boarded ? "absent" : "present")}
+                        className="gap-2"
+                      >
+                        <UserX className="h-4 w-4" />
+                        {!student.boarded ? "Absent" : t.markAbsent}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            ) : loading ? (
+              <p className="text-center text-muted-foreground py-4">Loading student data...</p>
+            ) : (
+              <div className="text-center space-y-2 py-4">
+                <p className="text-muted-foreground">No students linked to your account</p>
+                <p className="text-xs text-muted-foreground">Contact your school administrator if this seems incorrect</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

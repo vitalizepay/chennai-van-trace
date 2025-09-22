@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ const Index = () => {
   const [currentRole, setCurrentRole] = useState<UserRole>(null);
   const [language, setLanguage] = useState<"en" | "ta">("en");
   const { user, loading, userRole, needsPasswordChange } = useAuth();
+  const navigate = useNavigate();
 
   const toggleLanguage = () => {
     setLanguage(language === "en" ? "ta" : "en");
@@ -205,7 +207,7 @@ const Index = () => {
           <div className="text-center pt-4">
             <button 
               className="text-white/70 hover:text-white text-xs underline"
-              onClick={() => window.location.href = '/school-admin'}
+              onClick={() => navigate('/school-admin')}
               type="button"
             >
               Admin Login
@@ -242,6 +244,8 @@ interface RoleCardProps {
 }
 
 const RoleCard = ({ role, title, description, icon, color, onLogin, texts }: RoleCardProps) => {
+  const navigate = useNavigate();
+  
   return (
     <Card className="mt-4 bg-white/95 backdrop-blur-sm border-white/30 shadow-xl">
       <CardHeader className="text-center pb-4">
@@ -270,18 +274,18 @@ const RoleCard = ({ role, title, description, icon, color, onLogin, texts }: Rol
         </div>
         
         <div className="space-y-4 pt-2">
-          <button 
-            className="w-full h-12 text-white font-bold text-base rounded-lg shadow-lg"
-            style={{ background: 'var(--gradient-button)' }}
-            onClick={() => window.location.href = '/auth'}
-          >
-            {texts.login}
-          </button>
+        <button 
+          className="w-full h-12 text-white font-bold text-base rounded-lg shadow-lg"
+          style={{ background: 'var(--gradient-button)' }}
+          onClick={() => navigate('/auth')}
+        >
+          {texts.login}
+        </button>
 
           <div className="space-y-3 text-center">
             <button 
               className="text-primary font-semibold text-sm"
-              onClick={() => window.location.href = '/auth'}
+              onClick={() => navigate('/auth')}
               type="button"
             >
               Forgot Password?
@@ -292,7 +296,7 @@ const RoleCard = ({ role, title, description, icon, color, onLogin, texts }: Rol
             </div>
             <button 
               className="text-primary font-semibold text-sm"
-              onClick={() => window.location.href = '/auth'}
+              onClick={() => navigate('/auth')}
               type="button"
             >
               Forgot Username?
