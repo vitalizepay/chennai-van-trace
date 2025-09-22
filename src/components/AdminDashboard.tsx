@@ -63,9 +63,9 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
   });
   const [loading, setLoading] = useState(true);
   const [alerts] = useState<Alert[]>([
-    { id: "1", type: "sos", message: "SOS alert from VAN-001", time: "2 mins ago", van: "VAN-001" },
-    { id: "2", type: "delay", message: "Route B running 15 minutes late", time: "8 mins ago", van: "VAN-002" },
-    { id: "3", type: "maintenance", message: "Scheduled maintenance due", time: "1 hour ago", van: "VAN-004" },
+    { id: "1", type: "sos", message: "SOS alert from Van", time: "2 mins ago", van: "Active Van" },
+    { id: "2", type: "delay", message: "Route running 15 minutes late", time: "8 mins ago", van: "Route Van" },
+    { id: "3", type: "maintenance", message: "Scheduled maintenance due", time: "1 hour ago", van: "Maintenance Van" },
   ]);
 
   const texts = {
@@ -247,6 +247,14 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
     });
   };
 
+  const handleViewVanDetails = (van: Van) => {
+    toast({
+      title: `Van Details: ${van.van_number}`,
+      description: `Route: ${van.route_name || 'No route assigned'} | Students: ${van.current_students}/${van.capacity} | Status: ${van.status}`,
+      className: "bg-primary text-primary-foreground"
+    });
+  };
+
   const activeVansCount = vans.filter(van => van.status === "active").length;
   const totalStudents = vans.reduce((sum, van) => sum + (van.current_students || 0), 0);
   const activeRoutes = new Set(vans.filter(van => van.status === "active" && van.route_name).map(van => van.route_name)).size;
@@ -400,7 +408,11 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
                           {t[van.status as keyof typeof t] || van.status}
                         </Badge>
                         <span className="text-sm font-medium">{van.current_students}/{van.capacity} students</span>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewVanDetails(van)}
+                        >
                           {t.viewDetails}
                         </Button>
                       </div>

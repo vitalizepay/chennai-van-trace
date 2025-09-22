@@ -44,10 +44,8 @@ const Index = () => {
     // Check if user needs to change password from temp password
     if (needsPasswordChange) {
       return <ForcePasswordChange onSuccess={() => {
-        // Force a refresh of the auth state without page reload
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
+        // Refresh auth state without page reload
+        window.location.pathname = '/';
       }} />;
     }
 
@@ -274,42 +272,31 @@ const RoleCard = ({ role, title, description, icon, color, onLogin, texts }: Rol
         </div>
         
         <div className="space-y-4 pt-2">
-        <button 
-          className="w-full h-12 text-white font-bold text-base rounded-lg shadow-lg"
-          style={{ background: 'var(--gradient-button)' }}
-          onClick={() => navigate('/auth')}
-        >
-          {texts.login}
-        </button>
+          <button 
+            className="w-full h-12 text-white font-bold text-base rounded-lg shadow-lg"
+            style={{ background: 'var(--gradient-button)' }}
+            onClick={() => navigate('/auth')}
+          >
+            {texts.login}
+          </button>
 
-          <div className="space-y-3 text-center">
+          <div className="text-center">
             <button 
-              className="text-primary font-semibold text-sm"
+              className="text-primary font-semibold text-sm block mx-auto mb-2"
               onClick={() => navigate('/auth')}
               type="button"
             >
-              Forgot Password?
+              Need help? Login or Reset Password
             </button>
-            <div className="flex items-center gap-2 justify-center">
-              <input type="checkbox" className="w-4 h-4" />
-              <span className="text-sm text-gray-600">Remember me</span>
-            </div>
+            
             <button 
-              className="text-primary font-semibold text-sm"
-              onClick={() => navigate('/auth')}
+              className="text-red-500 font-semibold text-xs block mx-auto"
+              onClick={() => navigate('/privacy')}
               type="button"
             >
-              Forgot Username?
+              Privacy Policy
             </button>
           </div>
-
-          <button 
-            className="text-red-500 font-semibold text-sm w-full"
-            onClick={() => window.open('/privacy', '_blank')}
-            type="button"
-          >
-            Privacy Policy
-          </button>
         </div>
       </CardContent>
     </Card>

@@ -33,8 +33,8 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
   const texts = {
     en: {
       title: "Driver Dashboard",
-      driverName: "Raj Kumar",
-      vanNumber: "VAN-001",
+      driverName: "Driver",
+      vanNumber: vanData?.van_number || "No Van Assigned",
       startTrip: "Start Trip",
       stopTrip: "Stop Trip",
       tripStatus: "Trip Status",
@@ -45,12 +45,12 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
       boarded: "Boarded",
       dropped: "Dropped",
       pending: "Pending",
-      routeStops: "Route: Anna Nagar → T.Nagar → Velachery → Adyar → School"
+      routeStops: vanData?.route_name || "No route assigned"
     },
     ta: {
       title: "ஓட்டுநர் டாஷ்போர்டு",
-      driverName: "ராஜ் குமார்",
-      vanNumber: "VAN-001",
+      driverName: "ஓட்டுநர்",
+      vanNumber: vanData?.van_number || "வேன் ஒதுக்கப்படவில்லை",
       startTrip: "பயணம் தொடங்கு",
       stopTrip: "பயணம் நிறுத்து",
       tripStatus: "பயண நிலை",
@@ -61,7 +61,7 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
       boarded: "ஏறினார்",
       dropped: "இறக்கினார்",
       pending: "நிலுவை",
-      routeStops: "பாதை: அண்ணா நகர் → டி.நகர் → வேளச்சேரி → அடையார் → பள்ளி"
+      routeStops: vanData?.route_name || "பாதை ஒதுக்கப்படவில்லை"
     }
   };
 

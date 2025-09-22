@@ -39,8 +39,13 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
           .select(`
             *,
             vans (
-              *,
-              driver_details!inner (*)
+              id,
+              van_number,
+              route_name,
+              current_lat,
+              current_lng,
+              status,
+              driver_id
             )
           `)
           .eq('parent_id', user.id);
@@ -73,8 +78,13 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
               .select(`
                 *,
                 vans (
-                  *,
-                  driver_details!inner (*)
+                  id,
+                  van_number,
+                  route_name,
+                  current_lat,
+                  current_lng,
+                  status,
+                  driver_id
                 )
               `)
               .ilike('full_name', `%${profile.full_name.split(' ')[0]}%`)
