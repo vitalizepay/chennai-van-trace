@@ -223,16 +223,6 @@ const EnhancedGoogleMap = ({
         marker.set('infoWindow', infoWindow);
         newMarkers.push(marker);
         bounds.extend(position);
-
-        // Simulate van movement (for demo purposes)
-        setInterval(() => {
-          const currentPos = marker.getPosition();
-          if (currentPos) {
-            const lat = currentPos.lat() + (Math.random() - 0.5) * 0.002;
-            const lng = currentPos.lng() + (Math.random() - 0.5) * 0.002;
-            marker.setPosition({ lat, lng });
-          }
-        }, 10000 + Math.random() * 10000); // Random interval between 10-20 seconds
       }
     });
 
