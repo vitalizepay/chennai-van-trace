@@ -166,10 +166,10 @@ const EnhancedGoogleMap = ({
 
       await loader.load();
 
-      // Center map on Chennai (where most schools are located)
+      // Center map on Tamil Nadu region (to cover more schools)
       const mapInstance = new google.maps.Map(mapRef.current, {
-        center: { lat: 13.0827, lng: 80.2707 },
-        zoom: 11,
+        center: { lat: 11.0168, lng: 76.9558 }, // Central Tamil Nadu
+        zoom: 8,
         styles: [
           {
             featureType: "poi",
@@ -228,16 +228,21 @@ const EnhancedGoogleMap = ({
 
     setMarkers(newMarkers);
 
-    // Fit map to show all markers
+    // Fit map to show all markers with better mobile handling
     if (newMarkers.length > 0) {
       if (newMarkers.length === 1) {
-        map.setCenter(newMarkers[0].getPosition()!);
-        map.setZoom(14);
+        const position = newMarkers[0].getPosition();
+        if (position) {
+          map.setCenter(position);
+          map.setZoom(15); // Closer zoom for single van
+          console.log('🗺️ Centering map on single van at:', position.lat(), position.lng());
+        }
       } else {
         map.fitBounds(bounds);
-        // Add some padding
+        // Add padding for better view
         const listener = google.maps.event.addListener(map, "idle", () => {
-          if (map.getZoom()! > 12) map.setZoom(12);
+          const currentZoom = map.getZoom();
+          if (currentZoom && currentZoom > 14) map.setZoom(14);
           google.maps.event.removeListener(listener);
         });
       }

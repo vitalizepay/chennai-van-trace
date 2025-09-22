@@ -105,31 +105,33 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
   useEffect(() => {
     console.log('Location tracking effect triggered:', { tripActive, vanId });
     
-    if (!tripActive || !vanId) {
-      console.log('Location tracking not starting:', { 
-        tripActive: tripActive, 
-        vanId: vanId,
-        reason: !tripActive ? 'trip not active' : 'no van assigned' 
-      });
+    if (!vanId) {
+      console.log('No van assigned, cannot track location');
       return;
     }
 
     const updateLocation = async () => {
-      console.log('Attempting to get location...');
+      console.log('Attempting to get location for mobile GPS...');
       
       if (!navigator.geolocation) {
         console.error('Geolocation is not supported by this browser');
+        toast({
+          title: "GPS Not Available",
+          description: "Your device doesn't support GPS tracking",
+          variant: "destructive"
+        });
         return;
       }
       
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude, accuracy } = position.coords;
-          console.log('Location obtained:', { 
+          console.log('📍 Location obtained:', { 
             latitude, 
             longitude, 
             accuracy,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            isMobile: /Mobi|Android/i.test(navigator.userAgent)
           });
           
           try {
@@ -143,48 +145,62 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
               .eq('id', vanId);
               
             if (error) {
-              console.error('Database update error:', error);
+              console.error('❌ Database update error:', error);
+              toast({
+                title: "Location Update Failed",
+                description: "Could not update van location",
+                variant: "destructive"
+              });
             } else {
-              console.log('Location successfully updated in database for van:', vanId);
+              console.log('✅ Location successfully updated for van:', vanId, 'at', latitude, longitude);
             }
           } catch (dbError) {
-            console.error('Database operation failed:', dbError);
+            console.error('❌ Database operation failed:', dbError);
           }
         },
         (error) => {
-          console.error('Geolocation error:', {
+          console.error('❌ Geolocation error:', {
             code: error.code,
             message: error.message,
+            isMobile: /Mobi|Android/i.test(navigator.userAgent),
             details: {
               1: 'PERMISSION_DENIED - User denied location access',
               2: 'POSITION_UNAVAILABLE - Location information unavailable', 
               3: 'TIMEOUT - Location request timed out'
             }[error.code] || 'Unknown error'
           });
+          
+          if (error.code === 1) {
+            toast({
+              title: "Location Permission Required",
+              description: "Please enable location access for accurate tracking",
+              variant: "destructive"
+            });
+          }
         },
         {
           enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 30000
+          timeout: 10000,
+          maximumAge: 5000
         }
       );
     };
 
-    // Update location immediately when trip starts
-    console.log('Starting location tracking for van:', vanId);
+    // Always track location when driver is logged in (even when trip is not active)
+    console.log('🚐 Starting continuous location tracking for van:', vanId);
     updateLocation();
 
-    // Then update every 10 seconds while trip is active
+    // Update every 5 seconds for more accurate tracking
     const locationInterval = setInterval(() => {
-      console.log('Periodic location update triggered');
+      console.log('🔄 Periodic location update triggered');
       updateLocation();
-    }, 10000);
+    }, 5000);
 
     return () => {
-      console.log('Stopping location tracking');
+      console.log('🛑 Stopping location tracking');
       clearInterval(locationInterval);
     };
-  }, [tripActive, vanId]);
+  }, [vanId]); // Remove tripActive dependency - always track when van is assigned
 
   const handleTripToggle = () => {
     setTripActive(!tripActive);
