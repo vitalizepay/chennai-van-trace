@@ -73,16 +73,28 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
   // Get driver's assigned van
   useEffect(() => {
     const fetchDriverVan = async () => {
-      if (!user?.id) return;
+      if (!user?.id) {
+        console.log('No user ID available for van lookup');
+        return;
+      }
+      
+      console.log('Fetching van for driver:', user.id);
       
       const { data, error } = await supabase
         .from('vans')
-        .select('id')
+        .select('id, van_number, route_name')
         .eq('driver_id', user.id)
         .maybeSingle();
       
+      console.log('Van fetch result:', { data, error });
+      
       if (data && !error) {
+        console.log('Driver assigned to van:', data);
         setVanId(data.id);
+      } else if (error) {
+        console.error('Error fetching driver van:', error);
+      } else {
+        console.log('No van assigned to driver:', user.id);
       }
     };
 
@@ -91,15 +103,37 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
 
   // Location tracking when trip is active
   useEffect(() => {
-    if (!tripActive || !vanId) return;
+    console.log('Location tracking effect triggered:', { tripActive, vanId });
+    
+    if (!tripActive || !vanId) {
+      console.log('Location tracking not starting:', { 
+        tripActive: tripActive, 
+        vanId: vanId,
+        reason: !tripActive ? 'trip not active' : 'no van assigned' 
+      });
+      return;
+    }
 
     const updateLocation = async () => {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            const { latitude, longitude } = position.coords;
-            
-            await supabase
+      console.log('Attempting to get location...');
+      
+      if (!navigator.geolocation) {
+        console.error('Geolocation is not supported by this browser');
+        return;
+      }
+      
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude, accuracy } = position.coords;
+          console.log('Location obtained:', { 
+            latitude, 
+            longitude, 
+            accuracy,
+            timestamp: new Date().toISOString()
+          });
+          
+          try {
+            const { error } = await supabase
               .from('vans')
               .update({
                 current_lat: latitude,
@@ -107,26 +141,49 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
                 last_location_update: new Date().toISOString()
               })
               .eq('id', vanId);
-          },
-          (error) => {
-            console.error('Error getting location:', error);
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 60000
+              
+            if (error) {
+              console.error('Database update error:', error);
+            } else {
+              console.log('Location successfully updated in database for van:', vanId);
+            }
+          } catch (dbError) {
+            console.error('Database operation failed:', dbError);
           }
-        );
-      }
+        },
+        (error) => {
+          console.error('Geolocation error:', {
+            code: error.code,
+            message: error.message,
+            details: {
+              1: 'PERMISSION_DENIED - User denied location access',
+              2: 'POSITION_UNAVAILABLE - Location information unavailable', 
+              3: 'TIMEOUT - Location request timed out'
+            }[error.code] || 'Unknown error'
+          });
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 30000
+        }
+      );
     };
 
     // Update location immediately when trip starts
+    console.log('Starting location tracking for van:', vanId);
     updateLocation();
 
     // Then update every 10 seconds while trip is active
-    const locationInterval = setInterval(updateLocation, 10000);
+    const locationInterval = setInterval(() => {
+      console.log('Periodic location update triggered');
+      updateLocation();
+    }, 10000);
 
-    return () => clearInterval(locationInterval);
+    return () => {
+      console.log('Stopping location tracking');
+      clearInterval(locationInterval);
+    };
   }, [tripActive, vanId]);
 
   const handleTripToggle = () => {
