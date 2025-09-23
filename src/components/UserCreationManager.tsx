@@ -17,6 +17,7 @@ interface UserCreationManagerProps {
 const UserCreationManager = ({ language }: UserCreationManagerProps) => {
   const [loading, setLoading] = useState(false);
   const [schools, setSchools] = useState<Array<{id: string, name: string}>>([]);
+  const [vans, setVans] = useState<Array<{id: string, van_number: string, route_name: string}>>([]);
   const [formData, setFormData] = useState({
     userType: 'admin' as 'admin' | 'driver' | 'parent' | 'super_admin',
     email: '',
@@ -28,6 +29,12 @@ const UserCreationManager = ({ language }: UserCreationManagerProps) => {
     licenseNumber: '',
     childrenCount: '1'
   });
+  const [students, setStudents] = useState<Array<{
+    fullName: string;
+    grade: string;
+    pickupStop: string;
+    medicalInfo: string;
+  }>>([{ fullName: '', grade: '', pickupStop: '', medicalInfo: '' }]);
 
   const texts = {
     en: {
@@ -46,6 +53,14 @@ const UserCreationManager = ({ language }: UserCreationManagerProps) => {
       routeAssigned: "Route Name (Driver)",
       licenseNumber: "License Number (Driver)",
       childrenCount: "Number of Children (Parent)",
+      studentDetails: "Student Details",
+      studentName: "Student Name",
+      studentGrade: "Grade/Class",
+      pickupStop: "Pickup Stop",
+      medicalInfo: "Medical Info (Optional)",
+      addStudent: "Add Another Student",
+      removeStudent: "Remove Student",
+      assignVan: "Assign Van (Parent)",
       createAccount: "Create Account",
       creating: "Creating Account...",
       success: "User created successfully",
@@ -69,6 +84,14 @@ const UserCreationManager = ({ language }: UserCreationManagerProps) => {
       routeAssigned: "பாதை பெயர் (ஓட்டுநர்)",
       licenseNumber: "உரிம எண் (ஓட்டுநர்)",
       childrenCount: "குழந்தைகளின் எண்ணிக்கை (பெற்றோர்)",
+      studentDetails: "மாணவர் விவரங்கள்",
+      studentName: "மாணவர் பெயர்",
+      studentGrade: "வகுப்பு",
+      pickupStop: "பிக்கப் ஸ்டாப்",
+      medicalInfo: "மருத்துவ தகவல் (விருப்பமானது)",
+      addStudent: "மற்றொரு மாணவரைச் சேர்க்கவும்",
+      removeStudent: "மாணவரை அகற்று",
+      assignVan: "வேன் ஒதுக்கீடு (பெற்றோர்)",
       createAccount: "கணக்கை உருவாக்கவும்",
       creating: "கணக்கை உருவாக்குகிறது...",
       success: "பயனர் வெற்றிகரமாக உருவாக்கப்பட்டார்",
@@ -80,21 +103,35 @@ const UserCreationManager = ({ language }: UserCreationManagerProps) => {
 
   const t = texts[language];
 
-  // Fetch schools on component mount
+  // Fetch schools and vans on component mount
   useState(() => {
-    const fetchSchools = async () => {
-      const { data } = await supabase
-        .from('schools')
-        .select('id, name')
-        .eq('status', 'active')
-        .order('name');
+    const fetchData = async () => {
+      const [schoolsData, vansData] = await Promise.all([
+        supabase.from('schools').select('id, name').eq('status', 'active').order('name'),
+        supabase.from('vans').select('id, van_number, route_name').eq('status', 'active').order('van_number')
+      ]);
       
-      if (data) {
-        setSchools(data);
-      }
+      if (schoolsData.data) setSchools(schoolsData.data);
+      if (vansData.data) setVans(vansData.data);
     };
-    fetchSchools();
+    fetchData();
   });
+
+  const addStudent = () => {
+    setStudents([...students, { fullName: '', grade: '', pickupStop: '', medicalInfo: '' }]);
+  };
+
+  const removeStudent = (index: number) => {
+    if (students.length > 1) {
+      setStudents(students.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateStudent = (index: number, field: string, value: string) => {
+    const updatedStudents = [...students];
+    updatedStudents[index] = { ...updatedStudents[index], [field]: value };
+    setStudents(updatedStudents);
+  };
 
   const handleCreateUser = async () => {
     if (!formData.email || !formData.mobile || !formData.fullName) {
@@ -178,14 +215,43 @@ const UserCreationManager = ({ language }: UserCreationManagerProps) => {
 
         if (driverError) throw driverError;
       } else if (formData.userType === 'parent') {
+        // Validate student information
+        const validStudents = students.filter(student => 
+          student.fullName.trim() && student.grade.trim() && student.pickupStop.trim()
+        );
+        
+        if (validStudents.length === 0) {
+          throw new Error("Please provide at least one student with name, grade, and pickup stop");
+        }
+
         const { error: parentError } = await supabase
           .from('parent_details')
           .insert({
             user_id: userId,
-            children_count: parseInt(formData.childrenCount) || 1
+            children_count: validStudents.length
           });
 
         if (parentError) throw parentError;
+
+        // Create students for this parent
+        const studentsToCreate = validStudents.map(student => ({
+          full_name: student.fullName.trim(),
+          grade: student.grade.trim(),
+          pickup_stop: student.pickupStop.trim(),
+          medical_info: student.medicalInfo.trim() || null,
+          parent_id: userId,
+          school_id: formData.schoolId,
+          van_id: formData.vanAssigned || null,
+          status: 'active',
+          boarded: false,
+          dropped: false
+        }));
+
+        const { error: studentsError } = await supabase
+          .from('students')
+          .insert(studentsToCreate);
+
+        if (studentsError) throw studentsError;
       }
 
       toast({
@@ -206,6 +272,7 @@ const UserCreationManager = ({ language }: UserCreationManagerProps) => {
         licenseNumber: '',
         childrenCount: '1'
       });
+      setStudents([{ fullName: '', grade: '', pickupStop: '', medicalInfo: '' }]);
 
     } catch (error: any) {
       console.error('Error creating user:', error);
@@ -384,16 +451,102 @@ const UserCreationManager = ({ language }: UserCreationManagerProps) => {
 
                 {/* Parent-specific fields */}
                 {formData.userType === 'parent' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="childrenCount">{t.childrenCount}</Label>
-                    <Input
-                      id="childrenCount"
-                      type="number"
-                      min="1"
-                      max="5"
-                      value={formData.childrenCount}
-                      onChange={(e) => setFormData({...formData, childrenCount: e.target.value})}
-                    />
+                  <div className="col-span-2 space-y-4">
+                    <div className="border-t pt-4">
+                      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <Users className="h-5 w-5" />
+                        {t.studentDetails}
+                      </h3>
+                      
+                      {/* Van Assignment for Parent */}
+                      <div className="mb-4">
+                        <Label htmlFor="vanAssigned">{t.assignVan}</Label>
+                        <Select value={formData.vanAssigned} onValueChange={(value) => setFormData({...formData, vanAssigned: value})}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a van for students" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {vans.map((van) => (
+                              <SelectItem key={van.id} value={van.id}>
+                                {van.van_number} - {van.route_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-4">
+                        {students.map((student, index) => (
+                          <Card key={index} className="p-4">
+                            <div className="flex justify-between items-center mb-3">
+                              <h4 className="font-medium">Student {index + 1}</h4>
+                              {students.length > 1 && (
+                                <Button 
+                                  type="button"
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => removeStudent(index)}
+                                  className="text-destructive"
+                                >
+                                  {t.removeStudent}
+                                </Button>
+                              )}
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <div className="space-y-2">
+                                <Label>{t.studentName} *</Label>
+                                <Input
+                                  value={student.fullName}
+                                  onChange={(e) => updateStudent(index, 'fullName', e.target.value)}
+                                  placeholder="Enter student's full name"
+                                  required
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label>{t.studentGrade} *</Label>
+                                <Input
+                                  value={student.grade}
+                                  onChange={(e) => updateStudent(index, 'grade', e.target.value)}
+                                  placeholder="e.g., 5th Grade, Class 10"
+                                  required
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label>{t.pickupStop} *</Label>
+                                <Input
+                                  value={student.pickupStop}
+                                  onChange={(e) => updateStudent(index, 'pickupStop', e.target.value)}
+                                  placeholder="e.g., Anna Nagar, T. Nagar"
+                                  required
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label>{t.medicalInfo}</Label>
+                                <Input
+                                  value={student.medicalInfo}
+                                  onChange={(e) => updateStudent(index, 'medicalInfo', e.target.value)}
+                                  placeholder="Any medical conditions or allergies"
+                                />
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                        
+                        <Button 
+                          type="button"
+                          variant="outline" 
+                          onClick={addStudent}
+                          className="w-full gap-2"
+                        >
+                          <UserPlus className="h-4 w-4" />
+                          {t.addStudent}
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
