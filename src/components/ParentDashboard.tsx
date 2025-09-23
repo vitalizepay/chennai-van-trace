@@ -48,7 +48,8 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
               driver_id
             )
           `)
-          .eq('parent_id', user.id);
+          .eq('parent_id', user.id)
+          .eq('status', 'active');
 
         if (studentsError) {
           console.error('Error fetching students:', studentsError);
@@ -63,40 +64,9 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
             setVanData(students[0].vans);
           }
         } else {
-          // If no students linked to parent, try to find by mobile number pattern
-          // This is a fallback for existing data
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('mobile, full_name')
-            .eq('user_id', user.id)
-            .single();
-
-          if (profile?.full_name) {
-            // Try to find students with similar name pattern
-            const { data: potentialStudents } = await supabase
-              .from('students')
-              .select(`
-                *,
-                vans (
-                  id,
-                  van_number,
-                  route_name,
-                  current_lat,
-                  current_lng,
-                  status,
-                  driver_id
-                )
-              `)
-              .ilike('full_name', `%${profile.full_name.split(' ')[0]}%`)
-              .limit(3);
-
-            if (potentialStudents && potentialStudents.length > 0) {
-              setStudentData(potentialStudents);
-              if (potentialStudents[0].vans) {
-                setVanData(potentialStudents[0].vans);
-              }
-            }
-          }
+          // Clear data if no students found
+          setStudentData([]);
+          setVanData(null);
         }
       } catch (error) {
         console.error('Error in fetchStudentData:', error);
@@ -308,9 +278,16 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
             ) : loading ? (
               <p className="text-center text-muted-foreground py-4">Loading student data...</p>
             ) : (
-              <div className="text-center space-y-2 py-4">
-                <p className="text-muted-foreground">No students linked to your account</p>
-                <p className="text-xs text-muted-foreground">Contact your school administrator if this seems incorrect</p>
+              <div className="text-center space-y-3 py-6">
+                <p className="text-muted-foreground">No students found for your account</p>
+                <p className="text-xs text-muted-foreground">
+                  Please contact your school administrator to link your children to your account
+                </p>
+                <div className="bg-accent p-3 rounded-lg text-left">
+                  <p className="text-xs font-medium mb-1">Your Account Info:</p>
+                  <p className="text-xs text-muted-foreground">Mobile: {user?.email?.replace('@gmail.com', '')}</p>
+                  <p className="text-xs text-muted-foreground">User ID: {user?.id?.slice(0, 8)}...</p>
+                </div>
               </div>
             )}
           </CardContent>

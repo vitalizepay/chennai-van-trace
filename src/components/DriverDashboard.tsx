@@ -79,8 +79,9 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
       
       const { data: vanData, error: vanError } = await supabase
         .from('vans')
-        .select('id, van_number, route_name')
+        .select('id, van_number, route_name, current_students')
         .eq('driver_id', user.id)
+        .eq('status', 'active')
         .maybeSingle();
       
       console.log('Van fetch result:', { vanData, vanError });
@@ -90,22 +91,29 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
         setVanId(vanData.id);
         setVanData(vanData);
         
-        // Fetch students for this van
+        // Fetch students for this specific van only
         const { data: studentsData, error: studentsError } = await supabase
           .from('students')
           .select('id, full_name, pickup_stop, grade, boarded, dropped')
           .eq('van_id', vanData.id)
-          .eq('status', 'active');
+          .eq('status', 'active')
+          .order('full_name');
           
         if (studentsData && !studentsError) {
           setStudents(studentsData);
+          console.log(`Loaded ${studentsData.length} students for van ${vanData.van_number}`);
         } else if (studentsError) {
           console.error('Error fetching students:', studentsError);
+          setStudents([]);
         }
       } else if (vanError) {
         console.error('Error fetching driver van:', vanError);
+        setStudents([]);
+        setVanData(null);
       } else {
-        console.log('No van assigned to driver:', user.id);
+        console.log('No active van assigned to driver:', user.id);
+        setStudents([]);
+        setVanData(null);
       }
     };
 
@@ -142,7 +150,8 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
             longitude, 
             accuracy,
             timestamp: new Date().toISOString(),
-            isMobile: /Mobi|Android/i.test(navigator.userAgent)
+            isMobile: /Mobi|Android/i.test(navigator.userAgent),
+            tripActive
           });
           
           try {
@@ -151,7 +160,8 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
               .update({
                 current_lat: latitude,
                 current_lng: longitude,
-                last_location_update: new Date().toISOString()
+                last_location_update: new Date().toISOString(),
+                status: tripActive ? 'active' : 'active' // Keep as active but track trip status
               })
               .eq('id', vanId);
               
@@ -163,7 +173,7 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
                 variant: "destructive"
               });
             } else {
-              console.log('✅ Location successfully updated for van:', vanId, 'at', latitude, longitude);
+              console.log('✅ Location updated for van:', vanId, 'at', latitude, longitude, 'Trip active:', tripActive);
             }
           } catch (dbError) {
             console.error('❌ Database operation failed:', dbError);
@@ -197,21 +207,22 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
       );
     };
 
-    // Always track location when driver is logged in (even when trip is not active)
-    console.log('🚐 Starting continuous location tracking for van:', vanId);
+    // Track location continuously when driver is logged in, but more frequent when trip is active
+    console.log('🚐 Starting location tracking for van:', vanId, 'Trip active:', tripActive);
     updateLocation();
 
-    // Update every 5 seconds for more accurate tracking
+    // Update every 3 seconds when trip is active, every 10 seconds when inactive
+    const updateInterval = tripActive ? 3000 : 10000;
     const locationInterval = setInterval(() => {
-      console.log('🔄 Periodic location update triggered');
+      console.log('🔄 Periodic location update triggered, trip active:', tripActive);
       updateLocation();
-    }, 5000);
+    }, updateInterval);
 
     return () => {
       console.log('🛑 Stopping location tracking');
       clearInterval(locationInterval);
     };
-  }, [vanId]); // Remove tripActive dependency - always track when van is assigned
+  }, [vanId, tripActive]); // Track both vanId and tripActive
 
   const handleTripToggle = () => {
     setTripActive(!tripActive);
@@ -345,39 +356,55 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {students.map((student) => (
-              <div key={student.id} className="flex items-center justify-between p-3 bg-accent rounded-lg">
-                <div className="flex-1">
-                  <p className="font-medium">{student.full_name}</p>
-                  <p className="text-sm text-muted-foreground">{student.pickup_stop} • {student.grade}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  {getStudentStatusBadge(student)}
-                  <div className="flex gap-2">
-                    <Button
-                      variant={student.boarded ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => updateStudentStatus(student.id, "boarded")}
-                      disabled={!tripActive}
-                      className="gap-1"
-                    >
-                      <UserCheck className="h-3 w-3" />
-                      Board
-                    </Button>
-                    <Button
-                      variant={student.dropped ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => updateStudentStatus(student.id, "dropped")}
-                      disabled={!tripActive || !student.boarded}
-                      className="gap-1"
-                    >
-                      <UserX className="h-3 w-3" />
-                      Drop
-                    </Button>
+            {students.length > 0 ? (
+              students.map((student) => (
+                <div key={student.id} className="flex items-center justify-between p-3 bg-accent rounded-lg">
+                  <div className="flex-1">
+                    <p className="font-medium">{student.full_name}</p>
+                    <p className="text-sm text-muted-foreground">{student.pickup_stop} • {student.grade}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {getStudentStatusBadge(student)}
+                    <div className="flex gap-2">
+                      <Button
+                        variant={student.boarded ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => updateStudentStatus(student.id, "boarded")}
+                        disabled={!tripActive}
+                        className="gap-1"
+                      >
+                        <UserCheck className="h-3 w-3" />
+                        Board
+                      </Button>
+                      <Button
+                        variant={student.dropped ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => updateStudentStatus(student.id, "dropped")}
+                        disabled={!tripActive || !student.boarded}
+                        className="gap-1"
+                      >
+                        <UserX className="h-3 w-3" />
+                        Drop
+                      </Button>
+                    </div>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div className="text-center py-6 space-y-2">
+                <p className="text-muted-foreground">No students assigned to your van</p>
+                <p className="text-xs text-muted-foreground">
+                  Contact your school administrator if this seems incorrect
+                </p>
+                {vanData && (
+                  <div className="bg-accent p-3 rounded-lg text-left">
+                    <p className="text-xs font-medium mb-1">Your Van Info:</p>
+                    <p className="text-xs text-muted-foreground">Van: {vanData.van_number}</p>
+                    <p className="text-xs text-muted-foreground">Route: {vanData.route_name || 'No route assigned'}</p>
+                  </div>
+                )}
               </div>
-            ))}
+            )}
           </CardContent>
         </Card>
 
@@ -387,9 +414,24 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
             <CardContent className="pt-6">
               <div className="text-center space-y-2">
                 <div className="h-3 w-3 bg-success rounded-full mx-auto animate-pulse"></div>
-                <p className="text-sm font-medium">GPS Tracking Active</p>
+                <p className="text-sm font-medium text-success">🚐 Trip Active - GPS Tracking</p>
                 <p className="text-xs text-muted-foreground">
-                  Parents can see your live location
+                  Updating location every 3 seconds • Parents can see live location
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Passive Tracking Info */}
+        {!tripActive && vanData && (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center space-y-2">
+                <div className="h-3 w-3 bg-muted rounded-full mx-auto"></div>
+                <p className="text-sm font-medium text-muted-foreground">📍 Background Tracking</p>
+                <p className="text-xs text-muted-foreground">
+                  Location updated every 10 seconds • Start trip for real-time tracking
                 </p>
               </div>
             </CardContent>

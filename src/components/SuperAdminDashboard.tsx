@@ -3,12 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog, LogOut, School, Building, Eye, Plus, Search, TrendingUp, UserCheck } from "lucide-react";
+import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog, LogOut, School, Building, Eye, Plus, Search, TrendingUp, UserCheck, CheckCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import EnhancedGoogleMap from "./EnhancedGoogleMap";
 import SuperAdminUserManagement from "./SuperAdminUserManagement";
 import SchoolManagement from "./SchoolManagement";
+import UserCreationManager from "./UserCreationManager";
+import SystemStatusGuide from "./SystemStatusGuide";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Analytics {
@@ -340,19 +342,27 @@ const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => 
       </header>
 
       <div className="p-4">
-        <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6">
+        <Tabs defaultValue="status" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-8">
+            <TabsTrigger value="status" className="gap-2">
+              <CheckCircle className="h-4 w-4" />
+              Status
+            </TabsTrigger>
             <TabsTrigger value="overview" className="gap-2">
               <BarChart3 className="h-4 w-4" />
               {t.overview}
             </TabsTrigger>
             <TabsTrigger value="schools" className="gap-2">
               <Building className="h-4 w-4" />
-              Manage
+              Schools
+            </TabsTrigger>
+            <TabsTrigger value="users" className="gap-2">
+              <Plus className="h-4 w-4" />
+              Create Users
             </TabsTrigger>
             <TabsTrigger value="admins" className="gap-2">
               <UserCog className="h-4 w-4" />
-              Admins
+              Manage
             </TabsTrigger>
             <TabsTrigger value="vans" className="gap-2">
               <Bus className="h-4 w-4" />
@@ -367,6 +377,10 @@ const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => 
               {t.reports}
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="status" className="space-y-4">
+            <SystemStatusGuide language={language} />
+          </TabsContent>
 
           <TabsContent value="overview" className="space-y-4">
             {/* Stats Cards */}
@@ -431,6 +445,10 @@ const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => 
 
           <TabsContent value="schools" className="space-y-4">
             <SchoolManagement language={language} />
+          </TabsContent>
+
+          <TabsContent value="users" className="space-y-4">
+            <UserCreationManager language={language} />
           </TabsContent>
 
           <TabsContent value="admins" className="space-y-4">
