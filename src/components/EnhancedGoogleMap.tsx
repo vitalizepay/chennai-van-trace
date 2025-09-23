@@ -102,22 +102,33 @@ const EnhancedGoogleMap = ({
   };
 
   const createVanIcon = (van: Van) => {
-    const fillColor = van.status === 'active' ? '#10B981' : van.status === 'maintenance' ? '#F59E0B' : '#6B7280';
+    // Always use yellow color for van icons (ride-sharing app style)
+    const fillColor = '#F59E0B'; // Yellow color for all vans
+    const strokeColor = '#D97706'; // Darker yellow for stroke
     
     return {
       url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
-        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="20" cy="20" r="18" fill="white" stroke="${fillColor}" stroke-width="2"/>
-          <path d="M12 24h16l2-8H10l2 8z" fill="${fillColor}"/>
-          <circle cx="15" cy="24" r="2" fill="#333"/>
-          <circle cx="25" cy="24" r="2" fill="#333"/>
-          <path d="M13 20h14v-2H13v2z" fill="white" opacity="0.8"/>
-          <path d="M13 16h14v-2H13v2z" fill="white" opacity="0.8"/>
-          <text x="20" y="32" text-anchor="middle" fill="${fillColor}" font-size="8" font-weight="bold">${van.current_students}</text>
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Shadow -->
+          <ellipse cx="22" cy="40" rx="16" ry="3" fill="black" opacity="0.2"/>
+          <!-- Van body -->
+          <rect x="8" y="16" width="28" height="16" rx="3" fill="${fillColor}" stroke="${strokeColor}" stroke-width="2"/>
+          <!-- Van front -->
+          <rect x="8" y="18" width="4" height="10" rx="2" fill="${strokeColor}"/>
+          <!-- Windows -->
+          <rect x="14" y="19" width="6" height="4" rx="1" fill="white" opacity="0.9"/>
+          <rect x="22" y="19" width="6" height="4" rx="1" fill="white" opacity="0.9"/>
+          <rect x="30" y="19" width="4" height="4" rx="1" fill="white" opacity="0.9"/>
+          <!-- Wheels -->
+          <circle cx="14" cy="32" r="3" fill="#333" stroke="white" stroke-width="1"/>
+          <circle cx="30" cy="32" r="3" fill="#333" stroke="white" stroke-width="1"/>
+          <!-- Student count badge -->
+          <circle cx="32" cy="12" r="6" fill="#DC2626" stroke="white" stroke-width="2"/>
+          <text x="32" y="16" text-anchor="middle" fill="white" font-size="8" font-weight="bold">${van.current_students}</text>
         </svg>
       `),
-      scaledSize: new google.maps.Size(40, 40),
-      anchor: new google.maps.Point(20, 20)
+      scaledSize: new google.maps.Size(44, 44),
+      anchor: new google.maps.Point(22, 32)
     };
   };
 
@@ -166,17 +177,67 @@ const EnhancedGoogleMap = ({
 
       await loader.load();
 
-      // Center map on Tamil Nadu region (to cover more schools)
+      // Center map on Chennai region (main school area)
       const mapInstance = new google.maps.Map(mapRef.current, {
-        center: { lat: 11.0168, lng: 76.9558 }, // Central Tamil Nadu
-        zoom: 8,
+        center: { lat: 13.0827, lng: 80.2707 }, // Chennai
+        zoom: 11,
+        // Modern map styles similar to Swiggy/Ola/Rapido
         styles: [
+          // Hide all POI labels for cleaner look
           {
             featureType: "poi",
             elementType: "labels",
             stylers: [{ visibility: "off" }]
+          },
+          // Road styling for better contrast
+          {
+            featureType: "road",
+            elementType: "geometry",
+            stylers: [{ color: "#ffffff" }]
+          },
+          {
+            featureType: "road.highway",
+            elementType: "geometry",
+            stylers: [{ color: "#f5f5f5" }]
+          },
+          {
+            featureType: "road.arterial",
+            elementType: "geometry",
+            stylers: [{ color: "#ffffff" }]
+          },
+          // Water styling
+          {
+            featureType: "water",
+            elementType: "geometry",
+            stylers: [{ color: "#e6f3ff" }]
+          },
+          // Landscape/land styling
+          {
+            featureType: "landscape",
+            elementType: "geometry",
+            stylers: [{ color: "#f8f9fa" }]
+          },
+          // Transit removal
+          {
+            featureType: "transit",
+            elementType: "labels",
+            stylers: [{ visibility: "off" }]
+          },
+          // Administrative boundaries
+          {
+            featureType: "administrative",
+            elementType: "geometry.stroke",
+            stylers: [{ color: "#c9c9c9" }, { weight: 0.5 }]
           }
-        ]
+        ],
+        // Additional map options for better UX
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+        zoomControl: true,
+        zoomControlOptions: {
+          position: google.maps.ControlPosition.RIGHT_CENTER
+        }
       });
 
       setMap(mapInstance);
