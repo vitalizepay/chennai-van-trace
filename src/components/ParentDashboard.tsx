@@ -156,35 +156,54 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
 
         if (error || !vanUpdates) return;
 
-        // Define main road point near student location (example coordinates)
-        const mainRoadPoints = [
-          { lat: 13.0827, lng: 80.2707, name: "Main Road Junction" },
-          { lat: 13.0500, lng: 80.2500, name: "School Entrance" }
-        ];
+        // Get student pickup locations for accurate notifications
+        const studentPickupPoints = studentData.map(student => ({
+          name: student.full_name,
+          pickupStop: student.pickup_stop,
+          // Use a simple hash function to generate coordinates based on pickup stop
+          // In production, you'd get actual coordinates from a geocoding service
+          lat: 13.0827 + (student.pickup_stop.length * 0.001), 
+          lng: 80.2707 + (student.pickup_stop.charCodeAt(0) * 0.0001)
+        }));
 
-        // School campus coordinates (example)
+        // School campus coordinates (get from school data or use default)
         const schoolLocation = { lat: 13.0500, lng: 80.2500 };
 
         if (vanUpdates.current_lat && vanUpdates.current_lng) {
           const vanLocation = { lat: vanUpdates.current_lat, lng: vanUpdates.current_lng };
           
-          // Calculate distance to main road point (simplified calculation)
-          const distanceToMainRoad = Math.sqrt(
-            Math.pow(vanLocation.lat - mainRoadPoints[0].lat, 2) + 
-            Math.pow(vanLocation.lng - mainRoadPoints[0].lng, 2)
-          );
+          // Calculate distance to nearest student pickup point 
+          let minDistanceToPickup = Infinity;
+          let nearestStudent = null;
           
-          // Calculate distance to school (simplified calculation)  
+          for (const pickup of studentPickupPoints) {
+            const distance = Math.sqrt(
+              Math.pow(vanLocation.lat - pickup.lat, 2) + 
+              Math.pow(vanLocation.lng - pickup.lng, 2)
+            );
+            if (distance < minDistanceToPickup) {
+              minDistanceToPickup = distance;
+              nearestStudent = pickup;
+            }
+          }
+          
+          // Calculate distance to school
           const distanceToSchool = Math.sqrt(
             Math.pow(vanLocation.lat - schoolLocation.lat, 2) + 
             Math.pow(vanLocation.lng - schoolLocation.lng, 2)
           );
 
-          // Check for main road notification (within 0.01 degrees ≈ 1km)
-          if (distanceToMainRoad < 0.01 && vanStatus !== "approaching") {
+          // Check for main road notification (within 0.008 degrees ≈ 800m from pickup)
+          if (minDistanceToPickup < 0.008 && vanStatus !== "approaching") {
             setVanStatus("approaching");
-            const message = `${t.vanNumber} has reached the main road near your pickup point`;
-            setNotifications(prev => [message, ...prev.slice(0, 4)]);
+            const message = `${t.vanNumber} reached main road near ${nearestStudent?.pickupStop || 'pickup point'}`;
+            setNotifications(prev => {
+              // Only add if this exact message isn't already present
+              if (!prev.includes(message)) {
+                return [message, ...prev.slice(0, 4)];
+              }
+              return prev;
+            });
             toast({
               title: "Van Update",
               description: message,
@@ -193,13 +212,19 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
             setETA("5-8 mins");
           }
           
-          // Check for school entry notification (within 0.005 degrees ≈ 500m)
-          else if (distanceToSchool < 0.005 && vanStatus !== "arrived") {
+          // Check for school entry notification (within 0.003 degrees ≈ 300m from school)
+          else if (distanceToSchool < 0.003 && vanStatus !== "arrived") {
             setVanStatus("arrived");
-            const message = `${t.vanNumber} has entered the school campus`;
-            setNotifications(prev => [message, ...prev.slice(0, 4)]);
+            const message = `${t.vanNumber} entered school campus`;
+            setNotifications(prev => {
+              // Only add if this exact message isn't already present
+              if (!prev.includes(message)) {
+                return [message, ...prev.slice(0, 4)];
+              }
+              return prev;
+            });
             toast({
-              title: "Van Update",
+              title: "Van Update", 
               description: message,
               className: "bg-success text-success-foreground"
             });
@@ -207,9 +232,11 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
           }
           
           // Default en route status
-          else if (distanceToMainRoad >= 0.01 && distanceToSchool >= 0.005) {
-            setVanStatus("en_route");
-            setETA(`${Math.floor(distanceToMainRoad * 100)} mins`);
+          else if (minDistanceToPickup >= 0.008 && distanceToSchool >= 0.003) {
+            if (vanStatus !== "en_route") {
+              setVanStatus("en_route");
+            }
+            setETA(`${Math.floor(minDistanceToPickup * 120)} mins`);
           }
         }
       } catch (error) {
@@ -234,7 +261,7 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
   const getStatusText = () => {
     switch (vanStatus) {
       case "approaching": return "Near pickup point";
-      case "arrived": return "At school campus";
+      case "arrived": return "At school campus";  
       default: return t.enRoute;
     }
   };
