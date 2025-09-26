@@ -118,8 +118,8 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
       markAbsent: "Mark Child Absent",
       markPresent: "Mark Child Present",
       notifications: "Notifications",
-      vanApproaching: "Van approaching your stop",
-      vanArrived: "Van has arrived at your stop",
+      vanApproaching: "Van reached main road near pickup point",
+      vanArrived: "Van entered school campus",
       enRoute: "Van is en route",
       noNotifications: "No new notifications"
     },
@@ -133,8 +133,8 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
       markAbsent: "குழந்தை இல்லை என குறிக்கவும்",
       markPresent: "குழந்தை உள்ளார் என குறிக்கவும்",
       notifications: "அறிவிப்புகள்",
-      vanApproaching: "வேன் உங்கள் நிறுத்தத்தை நெருங்குகிறது",
-      vanArrived: "வேன் உங்கள் நிறுத்தத்தை அடைந்துள்ளது",
+      vanApproaching: "வேன் பிக்கப் பாயிண்ட் அருகில் முக்கிய சாலையை அடைந்தது",
+      vanArrived: "வேன் பள்ளி வளாகத்தில் நுழைந்தது",
       enRoute: "வேன் பாதையில் உள்ளது",
       noNotifications: "புதிய அறிவிப்புகள் இல்லை"
     }
@@ -142,35 +142,86 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
 
   const t = texts[language];
 
-  // Simulate real-time updates
+  // Real-time van status tracking based on actual location
   useEffect(() => {
-    const interval = setInterval(() => {
-      const statuses = ["approaching", "arrived", "en_route"] as const;
-      const currentIndex = statuses.indexOf(vanStatus);
-      const nextStatus = statuses[(currentIndex + 1) % statuses.length];
-      
-      if (nextStatus === "approaching") {
-        setNotifications(prev => [t.vanApproaching, ...prev.slice(0, 4)]);
-        toast({
-          title: "Van Update",
-          description: t.vanApproaching,
-          className: "bg-secondary text-secondary-foreground"
-        });
-      } else if (nextStatus === "arrived") {
-        setNotifications(prev => [t.vanArrived, ...prev.slice(0, 4)]);
-        toast({
-          title: "Van Update", 
-          description: t.vanArrived,
-          className: "bg-success text-success-foreground"
-        });
-      }
-      
-      setVanStatus(nextStatus);
-      setETA(nextStatus === "arrived" ? "Now" : `${Math.floor(Math.random() * 15) + 5} mins`);
-    }, 8000);
+    if (!vanData || !studentData.length) return;
 
+    const trackVanStatus = async () => {
+      try {
+        const { data: vanUpdates, error } = await supabase
+          .from('vans')
+          .select('current_lat, current_lng, status, last_location_update')
+          .eq('id', vanData.id)
+          .single();
+
+        if (error || !vanUpdates) return;
+
+        // Define main road point near student location (example coordinates)
+        const mainRoadPoints = [
+          { lat: 13.0827, lng: 80.2707, name: "Main Road Junction" },
+          { lat: 13.0500, lng: 80.2500, name: "School Entrance" }
+        ];
+
+        // School campus coordinates (example)
+        const schoolLocation = { lat: 13.0500, lng: 80.2500 };
+
+        if (vanUpdates.current_lat && vanUpdates.current_lng) {
+          const vanLocation = { lat: vanUpdates.current_lat, lng: vanUpdates.current_lng };
+          
+          // Calculate distance to main road point (simplified calculation)
+          const distanceToMainRoad = Math.sqrt(
+            Math.pow(vanLocation.lat - mainRoadPoints[0].lat, 2) + 
+            Math.pow(vanLocation.lng - mainRoadPoints[0].lng, 2)
+          );
+          
+          // Calculate distance to school (simplified calculation)  
+          const distanceToSchool = Math.sqrt(
+            Math.pow(vanLocation.lat - schoolLocation.lat, 2) + 
+            Math.pow(vanLocation.lng - schoolLocation.lng, 2)
+          );
+
+          // Check for main road notification (within 0.01 degrees ≈ 1km)
+          if (distanceToMainRoad < 0.01 && vanStatus !== "approaching") {
+            setVanStatus("approaching");
+            const message = `${t.vanNumber} has reached the main road near your pickup point`;
+            setNotifications(prev => [message, ...prev.slice(0, 4)]);
+            toast({
+              title: "Van Update",
+              description: message,
+              className: "bg-secondary text-secondary-foreground"
+            });
+            setETA("5-8 mins");
+          }
+          
+          // Check for school entry notification (within 0.005 degrees ≈ 500m)
+          else if (distanceToSchool < 0.005 && vanStatus !== "arrived") {
+            setVanStatus("arrived");
+            const message = `${t.vanNumber} has entered the school campus`;
+            setNotifications(prev => [message, ...prev.slice(0, 4)]);
+            toast({
+              title: "Van Update",
+              description: message,
+              className: "bg-success text-success-foreground"
+            });
+            setETA("Now");
+          }
+          
+          // Default en route status
+          else if (distanceToMainRoad >= 0.01 && distanceToSchool >= 0.005) {
+            setVanStatus("en_route");
+            setETA(`${Math.floor(distanceToMainRoad * 100)} mins`);
+          }
+        }
+      } catch (error) {
+        console.error('Error tracking van status:', error);
+      }
+    };
+
+    // Track initially and then every 30 seconds
+    trackVanStatus();
+    const interval = setInterval(trackVanStatus, 30000);
     return () => clearInterval(interval);
-  }, [vanStatus, t]);
+  }, [vanData, studentData, vanStatus, t]);
 
   const getStatusColor = () => {
     switch (vanStatus) {
@@ -182,8 +233,8 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
 
   const getStatusText = () => {
     switch (vanStatus) {
-      case "approaching": return t.vanApproaching;
-      case "arrived": return t.vanArrived;
+      case "approaching": return "Near pickup point";
+      case "arrived": return "At school campus";
       default: return t.enRoute;
     }
   };

@@ -10,6 +10,7 @@ import EnhancedGoogleMap from "./EnhancedGoogleMap";
 import SuperAdminUserManagement from "./SuperAdminUserManagement";
 import SchoolManagement from "./SchoolManagement";
 import UserCreationManager from "./UserCreationManager";
+import AdminUserAccess from "./AdminUserAccess";
 import SystemStatusGuide from "./SystemStatusGuide";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -452,7 +453,20 @@ const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => 
           </TabsContent>
 
           <TabsContent value="admins" className="space-y-4">
-            <SuperAdminUserManagement language={language} />
+            <Tabs defaultValue="user-management" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="user-management">User Management</TabsTrigger>
+                <TabsTrigger value="user-access">User Access Control</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="user-management">
+                <SuperAdminUserManagement language={language} />
+              </TabsContent>
+              
+              <TabsContent value="user-access">
+                <AdminUserAccess language={language} />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="vans" className="space-y-4">

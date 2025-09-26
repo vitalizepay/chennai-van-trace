@@ -170,7 +170,9 @@ const UserCreationManager = ({ language }: UserCreationManagerProps) => {
         password: 'password123', // Default password
         email_confirm: true,
         user_metadata: {
-          full_name: formData.fullName
+          full_name: formData.fullName,
+          mobile: formData.mobile,
+          role: formData.userType
         }
       });
 
@@ -236,9 +238,10 @@ const UserCreationManager = ({ language }: UserCreationManagerProps) => {
         // Create students for this parent
         const studentsToCreate = validStudents.map(student => ({
           full_name: student.fullName.trim(),
-          grade: student.grade.trim(),
+          grade: student.grade.trim(), 
           pickup_stop: student.pickupStop.trim(),
           medical_info: student.medicalInfo.trim() || null,
+          emergency_contact: formData.mobile, // Use parent mobile as emergency contact
           parent_id: userId,
           school_id: formData.schoolId,
           van_id: formData.vanAssigned || null,
