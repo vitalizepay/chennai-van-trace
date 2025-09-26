@@ -70,11 +70,11 @@ serve(async (req) => {
       },
     )
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in reset-user-password function:', error)
     return new Response(
       JSON.stringify({ 
-        error: error.message 
+        error: error?.message || 'Unknown error occurred' 
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -283,12 +283,12 @@ serve(async (req) => {
       },
     )
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating user:', error)
     return new Response(
       JSON.stringify({ 
-        error: error.message,
-        details: error.toString()
+        error: error?.message || 'Unknown error occurred',
+        details: error?.toString() || 'No details available'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
