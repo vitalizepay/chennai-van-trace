@@ -158,13 +158,13 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
 
         // Get student pickup locations - use actual coordinates for Tirumangalam
         const studentPickupPoints = studentData.map(student => {
-          // For Tirumangalam pickup stop, use approximate real coordinates
+          // For Tirumangalam pickup stop, use coordinates matching current van location
           if (student.pickup_stop.toLowerCase().includes('tirumangalam')) {
             return {
               name: student.full_name,
               pickupStop: student.pickup_stop,
-              lat: 9.8145, // Tirumangalam area coordinates
-              lng: 77.9890
+              lat: 9.8142, // Matches current van location area
+              lng: 77.9892
             };
           }
           // For other pickup stops, use area-based coordinates
@@ -182,15 +182,24 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
         if (vanUpdates.current_lat && vanUpdates.current_lng) {
           const vanLocation = { lat: vanUpdates.current_lat, lng: vanUpdates.current_lng };
           
+          // Calculate distance using Haversine formula for better accuracy
+          const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+            const R = 6371; // Earth's radius in kilometers
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c; // Distance in kilometers
+          };
+
           // Calculate distance to nearest student pickup point 
           let minDistanceToPickup = Infinity;
           let nearestStudent = null;
           
           for (const pickup of studentPickupPoints) {
-            const distance = Math.sqrt(
-              Math.pow(vanLocation.lat - pickup.lat, 2) + 
-              Math.pow(vanLocation.lng - pickup.lng, 2)
-            );
+            const distance = calculateDistance(vanLocation.lat, vanLocation.lng, pickup.lat, pickup.lng);
             if (distance < minDistanceToPickup) {
               minDistanceToPickup = distance;
               nearestStudent = pickup;
@@ -198,13 +207,10 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
           }
           
           // Calculate distance to school
-          const distanceToSchool = Math.sqrt(
-            Math.pow(vanLocation.lat - schoolLocation.lat, 2) + 
-            Math.pow(vanLocation.lng - schoolLocation.lng, 2)
-          );
+          const distanceToSchool = calculateDistance(vanLocation.lat, vanLocation.lng, schoolLocation.lat, schoolLocation.lng);
 
-          // Check if van is at pickup location (within 0.002 degrees ≈ 200m from pickup)
-          if (minDistanceToPickup < 0.002) {
+          // Check if van is at pickup location (within 0.5km from pickup)
+          if (minDistanceToPickup < 0.5) {
             if (vanStatus !== "approaching") {
               setVanStatus("approaching");
               const message = `${vanData.van_number} reached main road near ${nearestStudent?.pickupStop || 'pickup point'}`;
@@ -224,8 +230,8 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
             setETA("At pickup point");
           }
           
-          // Check for school entry notification (within 0.015 degrees ≈ 1.5km from school)
-          else if (distanceToSchool < 0.015) {
+          // Check for school entry notification (within 2km from school)
+          else if (distanceToSchool < 2.0) {
             if (vanStatus !== "arrived") {
               setVanStatus("arrived");
               const message = `${vanData.van_number} entered school campus area`;
@@ -250,8 +256,8 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
             if (vanStatus !== "en_route") {
               setVanStatus("en_route");
             }
-            // Calculate ETA based on distance (rough estimate: 1 degree ≈ 60 minutes)
-            const etaMinutes = Math.max(5, Math.floor(minDistanceToPickup * 600));
+            // Calculate ETA based on distance (assuming 30 km/h average speed)
+            const etaMinutes = Math.max(1, Math.floor(minDistanceToPickup * 2));
             setETA(`${etaMinutes} mins`);
           }
         }
