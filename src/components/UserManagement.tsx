@@ -54,6 +54,7 @@ const UserManagement = ({ language }: UserManagementProps) => {
   const [loading, setLoading] = useState(true);
   const [schoolData, setSchoolData] = useState<{ id: string; name: string } | null>(null);
   const [currentSchoolId, setCurrentSchoolId] = useState<string | null>(null);
+  const [availableVans, setAvailableVans] = useState<Array<{ id: string; van_number: string; route_name: string }>>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newUser, setNewUser] = useState({
     email: '',
@@ -70,7 +71,9 @@ const UserManagement = ({ language }: UserManagementProps) => {
     childrenCount: '1',
     address: '',
     emergencyContact: '',
-    mobile: ''
+    mobile: '',
+    // Parent van assignment
+    parentVanId: ''
   });
   const [students, setStudents] = useState<Array<{
     fullName: string;
@@ -188,11 +191,27 @@ const UserManagement = ({ language }: UserManagementProps) => {
 
   useEffect(() => {
     fetchUsers();
+    fetchVans();
   }, []);
 
   useEffect(() => {
     filterUsers();
   }, [users, searchTerm, statusFilter, roleFilter]);
+
+  const fetchVans = async () => {
+    try {
+      const { data: vans, error } = await supabase
+        .from('vans')
+        .select('id, van_number, route_name')
+        .eq('status', 'active')
+        .order('van_number');
+      
+      if (error) throw error;
+      setAvailableVans(vans || []);
+    } catch (error) {
+      console.error('Error fetching vans:', error);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -522,7 +541,8 @@ const UserManagement = ({ language }: UserManagementProps) => {
         childrenCount: '1',
         address: '',
         emergencyContact: '',
-        mobile: ''
+        mobile: '',
+        parentVanId: ''
       });
 
       setShowCreateDialog(false);
@@ -1094,6 +1114,22 @@ const UserManagement = ({ language }: UserManagementProps) => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
+                    <label className="text-sm font-medium">Assign Van *</label>
+                    <Select value={newUser.parentVanId} onValueChange={(value) => setNewUser({...newUser, parentVanId: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a van" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableVans.map((van) => (
+                          <SelectItem key={van.id} value={van.id}>
+                            {van.van_number} - {van.route_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
                     <label className="text-sm font-medium">Emergency Contact</label>
                     <Input
                       value={newUser.emergencyContact}
@@ -1101,15 +1137,15 @@ const UserManagement = ({ language }: UserManagementProps) => {
                       placeholder="+1234567890"
                     />
                   </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Address</label>
-                    <Input
-                      value={newUser.address}
-                      onChange={(e) => setNewUser({...newUser, address: e.target.value})}
-                      placeholder="123 Main St, City, State"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Address</label>
+                  <Input
+                    value={newUser.address}
+                    onChange={(e) => setNewUser({...newUser, address: e.target.value})}
+                    placeholder="123 Main St, City, State"
+                  />
                 </div>
 
                 <div className="border-t pt-4 space-y-4">
@@ -1213,7 +1249,12 @@ const UserManagement = ({ language }: UserManagementProps) => {
               </Button>
               <Button 
                 onClick={createUser}
-                disabled={!newUser.email || !newUser.fullName || !newUser.password}
+                disabled={
+                  !newUser.email || 
+                  !newUser.fullName || 
+                  !newUser.password ||
+                  (newUser.role === 'parent' && !newUser.parentVanId)
+                }
               >
                 Create User
               </Button>

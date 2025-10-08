@@ -271,6 +271,7 @@ serve(async (req) => {
       // Create student records if provided
       if (userData.students && Array.isArray(userData.students) && userData.students.length > 0) {
         console.log('Creating student records for parent:', authData.user.id)
+        console.log('Van assignment for students:', userData.parentVanId || userData.vanAssigned)
         
         // Delete existing students if updating user
         if (isExistingUser) {
@@ -279,6 +280,9 @@ serve(async (req) => {
             .delete()
             .eq('parent_id', authData.user.id)
         }
+
+        // Use parentVanId for parent users, vanAssigned for driver users
+        const vanIdForStudents = userData.parentVanId || userData.vanAssigned || null;
 
         const studentsToCreate = userData.students
           .filter((s: any) => s.fullName?.trim())
@@ -290,22 +294,40 @@ serve(async (req) => {
             emergency_contact: userData.emergencyContact || userData.phone || null,
             parent_id: authData.user.id,
             school_id: schoolId,
-            van_id: userData.vanAssigned || null,
+            van_id: vanIdForStudents,
             status: 'active',
             boarded: false,
             dropped: false
           }));
 
         if (studentsToCreate.length > 0) {
-          const { error: studentsError } = await supabaseAdmin
+          console.log('Inserting students with van_id:', vanIdForStudents)
+          const { data: insertedStudents, error: studentsError } = await supabaseAdmin
             .from('students')
             .insert(studentsToCreate)
+            .select()
 
           if (studentsError) {
             console.error('Students creation error:', studentsError)
             throw studentsError
           }
-          console.log(`Created ${studentsToCreate.length} student records`)
+          console.log(`Created ${studentsToCreate.length} student records:`, insertedStudents)
+
+          // Update van's current_students count if van is assigned
+          if (vanIdForStudents) {
+            const { error: vanUpdateError } = await supabaseAdmin
+              .from('vans')
+              .update({ 
+                current_students: studentsToCreate.length 
+              })
+              .eq('id', vanIdForStudents);
+
+            if (vanUpdateError) {
+              console.error('Error updating van student count:', vanUpdateError);
+            } else {
+              console.log(`Updated van ${vanIdForStudents} with ${studentsToCreate.length} students`);
+            }
+          }
         }
       }
     }
