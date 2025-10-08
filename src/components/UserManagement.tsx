@@ -18,6 +18,7 @@ import {
   Filter,
   UserCheck,
   UserX,
+  UserPlus,
   Clock,
   Shield,
   Activity,
@@ -71,6 +72,12 @@ const UserManagement = ({ language }: UserManagementProps) => {
     emergencyContact: '',
     mobile: ''
   });
+  const [students, setStudents] = useState<Array<{
+    fullName: string;
+    grade: string;
+    pickupStop: string;
+    medicalInfo: string;
+  }>>([{ fullName: '', grade: '', pickupStop: '', medicalInfo: '' }]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -470,13 +477,31 @@ const UserManagement = ({ language }: UserManagementProps) => {
       // Get current user for created_by field
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       
+      // Validate student information for parent users
+      let validatedStudents = [];
+      if (newUser.role === 'parent') {
+        validatedStudents = students.filter(s => 
+          s.fullName.trim() && s.grade.trim() && s.pickupStop.trim()
+        );
+        
+        if (validatedStudents.length === 0) {
+          toast({
+            title: "Student Information Required",
+            description: "Please provide at least one student with name, grade, and pickup stop",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+      
       // Call edge function to create user with admin privileges
       const { data, error } = await supabase.functions.invoke('create-user', {
         body: {
           userData: {
             ...newUser,
             createdBy: currentUser?.id,
-            schoolId: currentSchoolId // Pass the admin's school ID
+            schoolId: currentSchoolId, // Pass the admin's school ID
+            students: newUser.role === 'parent' ? validatedStudents : undefined
           }
         }
       });
@@ -501,11 +526,12 @@ const UserManagement = ({ language }: UserManagementProps) => {
       });
 
       setShowCreateDialog(false);
+      setStudents([{ fullName: '', grade: '', pickupStop: '', medicalInfo: '' }]);
       await fetchUsers();
 
       toast({
         title: "User Created",
-        description: `${newUser.role} account created successfully`,
+        description: `${newUser.role} account created successfully. ${newUser.role === 'parent' ? `${validatedStudents.length} student(s) linked.` : ''}`,
       });
 
     } catch (error: any) {
@@ -1068,17 +1094,6 @@ const UserManagement = ({ language }: UserManagementProps) => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Number of Children</label>
-                    <Input
-                      type="number"
-                      value={newUser.childrenCount}
-                      onChange={(e) => setNewUser({...newUser, childrenCount: e.target.value})}
-                      placeholder="1"
-                      min="1"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
                     <label className="text-sm font-medium">Emergency Contact</label>
                     <Input
                       value={newUser.emergencyContact}
@@ -1086,15 +1101,105 @@ const UserManagement = ({ language }: UserManagementProps) => {
                       placeholder="+1234567890"
                     />
                   </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Address</label>
+                    <Input
+                      value={newUser.address}
+                      onChange={(e) => setNewUser({...newUser, address: e.target.value})}
+                      placeholder="123 Main St, City, State"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Address</label>
-                  <Input
-                    value={newUser.address}
-                    onChange={(e) => setNewUser({...newUser, address: e.target.value})}
-                    placeholder="123 Main St, City, State"
-                  />
+                <div className="border-t pt-4 space-y-4">
+                  <h4 className="font-medium">Student Information</h4>
+                  
+                  {students.map((student, index) => (
+                    <Card key={index} className="p-4 bg-accent/50">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-sm font-medium">Student {index + 1}</span>
+                        {students.length > 1 && (
+                          <Button 
+                            type="button"
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setStudents(students.filter((_, i) => i !== index))}
+                            className="h-8 px-2 text-destructive"
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Student Name *</label>
+                          <Input
+                            value={student.fullName}
+                            onChange={(e) => {
+                              const updated = [...students];
+                              updated[index].fullName = e.target.value;
+                              setStudents(updated);
+                            }}
+                            placeholder="Student's full name"
+                            required
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Grade/Class *</label>
+                          <Input
+                            value={student.grade}
+                            onChange={(e) => {
+                              const updated = [...students];
+                              updated[index].grade = e.target.value;
+                              setStudents(updated);
+                            }}
+                            placeholder="e.g., 5th Grade"
+                            required
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Pickup Stop *</label>
+                          <Input
+                            value={student.pickupStop}
+                            onChange={(e) => {
+                              const updated = [...students];
+                              updated[index].pickupStop = e.target.value;
+                              setStudents(updated);
+                            }}
+                            placeholder="e.g., Tirumangalam"
+                            required
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Medical Info</label>
+                          <Input
+                            value={student.medicalInfo}
+                            onChange={(e) => {
+                              const updated = [...students];
+                              updated[index].medicalInfo = e.target.value;
+                              setStudents(updated);
+                            }}
+                            placeholder="Allergies, conditions"
+                          />
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                  
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    onClick={() => setStudents([...students, { fullName: '', grade: '', pickupStop: '', medicalInfo: '' }])}
+                    className="w-full"
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add Another Student
+                  </Button>
                 </div>
               </div>
             )}

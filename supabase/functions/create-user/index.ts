@@ -251,18 +251,62 @@ serve(async (req) => {
           .eq('user_id', authData.user.id)
       }
 
+      // Get children count from students array or fallback
+      const childrenCount = userData.students?.length || parseInt(userData.childrenCount) || 1;
+
       const { error: parentError } = await supabaseAdmin
         .from('parent_details')
         .insert({
           user_id: authData.user.id,
-          children_count: parseInt(userData.childrenCount),
+          children_count: childrenCount,
           address: userData.address || null,
-          emergency_contact: userData.emergencyContact || null
+          emergency_contact: userData.emergencyContact || userData.phone || null
         })
 
       if (parentError) {
         console.error('Parent details error:', parentError)
         throw parentError
+      }
+
+      // Create student records if provided
+      if (userData.students && Array.isArray(userData.students) && userData.students.length > 0) {
+        console.log('Creating student records for parent:', authData.user.id)
+        
+        // Delete existing students if updating user
+        if (isExistingUser) {
+          await supabaseAdmin
+            .from('students')
+            .delete()
+            .eq('parent_id', authData.user.id)
+        }
+
+        const studentsToCreate = userData.students
+          .filter((s: any) => s.fullName?.trim())
+          .map((student: any) => ({
+            full_name: student.fullName.trim(),
+            grade: student.grade?.trim() || '',
+            pickup_stop: student.pickupStop?.trim() || '',
+            medical_info: student.medicalInfo?.trim() || null,
+            emergency_contact: userData.emergencyContact || userData.phone || null,
+            parent_id: authData.user.id,
+            school_id: schoolId,
+            van_id: userData.vanAssigned || null,
+            status: 'active',
+            boarded: false,
+            dropped: false
+          }));
+
+        if (studentsToCreate.length > 0) {
+          const { error: studentsError } = await supabaseAdmin
+            .from('students')
+            .insert(studentsToCreate)
+
+          if (studentsError) {
+            console.error('Students creation error:', studentsError)
+            throw studentsError
+          }
+          console.log(`Created ${studentsToCreate.length} student records`)
+        }
       }
     }
 
