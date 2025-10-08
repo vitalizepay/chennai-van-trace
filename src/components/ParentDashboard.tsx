@@ -22,6 +22,7 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
   const [notifications, setNotifications] = useState<string[]>([]);
   const [studentData, setStudentData] = useState<any[]>([]);
   const [vanData, setVanData] = useState<any>(null);
+  const [schoolId, setSchoolId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Fetch student and van data - force refresh
@@ -59,6 +60,11 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
         if (students && students.length > 0) {
           setStudentData(students);
           
+          // Get school_id from the first student
+          if (students[0].school_id) {
+            setSchoolId(students[0].school_id);
+          }
+          
           // Get van data from the first student (assuming single van per parent)
           if (students[0].vans) {
             setVanData(students[0].vans);
@@ -67,6 +73,7 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
           // Clear data if no students found
           setStudentData([]);
           setVanData(null);
+          setSchoolId(null);
         }
       } catch (error) {
         console.error('Error in fetchStudentData:', error);
@@ -341,7 +348,7 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
             <CardTitle className="text-base">{t.liveTracking}</CardTitle>
           </CardHeader>
           <CardContent>
-            <EnhancedGoogleMap height="h-40" />
+            <EnhancedGoogleMap height="h-40" schoolId={schoolId || undefined} />
           </CardContent>
         </Card>
 
