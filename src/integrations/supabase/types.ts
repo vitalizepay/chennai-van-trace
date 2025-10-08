@@ -469,6 +469,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_parent_of_van_students: {
+        Args: { _user_id: string; _van_id: string }
+        Returns: boolean
+      }
+      is_van_driver: {
+        Args: { _user_id: string; _van_id: string }
+        Returns: boolean
+      }
       make_user_admin: {
         Args: { _user_email: string }
         Returns: undefined
