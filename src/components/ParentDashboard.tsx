@@ -180,7 +180,11 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
         const schoolLocation = { lat: 9.7800, lng: 77.9500 };
 
         if (vanUpdates.current_lat && vanUpdates.current_lng) {
-          const vanLocation = { lat: vanUpdates.current_lat, lng: vanUpdates.current_lng };
+          // Ensure coordinates are proper numbers
+          const vanLocation = { 
+            lat: Number(vanUpdates.current_lat), 
+            lng: Number(vanUpdates.current_lng) 
+          };
           
           // Calculate distance using Haversine formula for better accuracy
           const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
