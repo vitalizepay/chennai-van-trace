@@ -341,7 +341,7 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
             <CardTitle className="text-base">{t.liveTracking}</CardTitle>
           </CardHeader>
           <CardContent>
-            <EnhancedGoogleMap height="h-40" vanId={vanData?.id} />
+            <EnhancedGoogleMap height="h-40" />
           </CardContent>
         </Card>
 
