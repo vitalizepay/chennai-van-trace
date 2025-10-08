@@ -180,54 +180,87 @@ const EnhancedGoogleMap = ({
       // Center map on Chennai region (main school area)
       const mapInstance = new google.maps.Map(mapRef.current, {
         center: { lat: 13.0827, lng: 80.2707 }, // Chennai
-        zoom: 11,
-        // Modern map styles similar to Swiggy/Ola/Rapido
+        zoom: 13, // Closer zoom for better street visibility
+        // Enhanced map styles for clear street visibility
         styles: [
-          // Hide all POI labels for cleaner look
+          // Hide unnecessary POI labels
           {
-            featureType: "poi",
+            featureType: "poi.business",
             elementType: "labels",
             stylers: [{ visibility: "off" }]
           },
-          // Road styling for better contrast
+          // Keep important POI like parks visible but subtle
+          {
+            featureType: "poi.park",
+            elementType: "labels",
+            stylers: [{ visibility: "simplified" }]
+          },
+          // Main roads - high contrast and clear
           {
             featureType: "road",
             elementType: "geometry",
-            stylers: [{ color: "#ffffff" }]
+            stylers: [{ color: "#ffffff" }, { weight: 1.5 }]
           },
+          {
+            featureType: "road",
+            elementType: "geometry.stroke",
+            stylers: [{ color: "#d9d9d9" }, { weight: 1 }]
+          },
+          // Road labels - highly visible
+          {
+            featureType: "road",
+            elementType: "labels.text.fill",
+            stylers: [{ color: "#333333" }]
+          },
+          {
+            featureType: "road",
+            elementType: "labels.text.stroke",
+            stylers: [{ color: "#ffffff" }, { weight: 3 }]
+          },
+          // Highways - distinct color
           {
             featureType: "road.highway",
             elementType: "geometry",
-            stylers: [{ color: "#f5f5f5" }]
+            stylers: [{ color: "#ffe066" }]
           },
+          {
+            featureType: "road.highway",
+            elementType: "geometry.stroke",
+            stylers: [{ color: "#cc9900" }]
+          },
+          // Arterial roads - clear
           {
             featureType: "road.arterial",
             elementType: "geometry",
             stylers: [{ color: "#ffffff" }]
           },
-          // Water styling
+          // Local streets - clearly visible
+          {
+            featureType: "road.local",
+            elementType: "geometry",
+            stylers: [{ color: "#f0f0f0" }]
+          },
+          {
+            featureType: "road.local",
+            elementType: "labels",
+            stylers: [{ visibility: "on" }]
+          },
+          // Water - subtle
           {
             featureType: "water",
             elementType: "geometry",
-            stylers: [{ color: "#e6f3ff" }]
+            stylers: [{ color: "#d4e7f5" }]
           },
-          // Landscape/land styling
+          // Landscape - lighter for better contrast
           {
             featureType: "landscape",
             elementType: "geometry",
-            stylers: [{ color: "#f8f9fa" }]
+            stylers: [{ color: "#f5f5f5" }]
           },
-          // Transit removal
+          // Transit - hide for cleaner look
           {
             featureType: "transit",
-            elementType: "labels",
             stylers: [{ visibility: "off" }]
-          },
-          // Administrative boundaries
-          {
-            featureType: "administrative",
-            elementType: "geometry.stroke",
-            stylers: [{ color: "#c9c9c9" }, { weight: 0.5 }]
           }
         ],
         // Additional map options for better UX
@@ -295,7 +328,7 @@ const EnhancedGoogleMap = ({
         const position = newMarkers[0].getPosition();
         if (position) {
           map.setCenter(position);
-          map.setZoom(15); // Closer zoom for single van
+          map.setZoom(16); // Even closer zoom for street-level view
           console.log('🗺️ Centering map on single van at:', position.lat(), position.lng());
         }
       } else {
@@ -303,7 +336,7 @@ const EnhancedGoogleMap = ({
         // Add padding for better view
         const listener = google.maps.event.addListener(map, "idle", () => {
           const currentZoom = map.getZoom();
-          if (currentZoom && currentZoom > 14) map.setZoom(14);
+          if (currentZoom && currentZoom > 15) map.setZoom(15);
           google.maps.event.removeListener(listener);
         });
       }
