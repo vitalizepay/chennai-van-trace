@@ -335,13 +335,17 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
           </CardContent>
         </Card>
 
-        {/* Live Tracking */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">{t.liveTracking}</CardTitle>
+        {/* Live Tracking - Half Screen */}
+        <Card className="border-2 border-primary/20">
+          <CardHeader className="pb-2 bg-primary/5">
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <MapPin className="h-6 w-6 text-primary animate-pulse" />
+              {t.liveTracking}
+              <Badge className="ml-auto bg-success text-success-foreground">Live</Badge>
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <EnhancedGoogleMap height="h-40" />
+          <CardContent className="p-2">
+            <EnhancedGoogleMap height="h-[50vh]" />
           </CardContent>
         </Card>
 
