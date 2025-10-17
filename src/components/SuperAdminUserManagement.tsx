@@ -69,7 +69,13 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
-  const [passwordInfo, setPasswordInfo] = useState<{password: string, userName: string, userEmail: string} | null>(null);
+  const [passwordInfo, setPasswordInfo] = useState<{
+    password: string;
+    userName: string;
+    userEmail: string;
+    userRole?: string;
+    userMobile?: string;
+  } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [schoolFilter, setSchoolFilter] = useState<string>("all");
@@ -387,7 +393,7 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
     }
   };
 
-  const resetPassword = async (userId: string, userName: string, userEmail: string) => {
+  const resetPassword = async (userId: string, userName: string, userEmail: string, userRole: string = 'Admin') => {
     try {
       const { data, error } = await supabase.functions.invoke('reset-user-password', {
         body: { userId }
@@ -395,13 +401,20 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
 
       if (error) throw error;
 
-      // Show password in dialog for easy copying
+      // Show password in dialog with user type information
       setPasswordInfo({
         password: data.tempPassword,
-        userName: userName,
-        userEmail: userEmail
+        userName: data.userInfo?.name || userName,
+        userEmail: data.userInfo?.email || userEmail,
+        userRole: data.userInfo?.role || userRole,
+        userMobile: data.userInfo?.mobile
       });
       setShowPasswordDialog(true);
+
+      toast({
+        title: "Password Reset Successful",
+        description: `Password reset for ${data.userInfo?.role || userRole}: ${userName}`,
+      });
     } catch (error: any) {
       console.error('Error resetting password:', error);
       toast({
@@ -676,7 +689,7 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
                     <Button 
                       size="sm" 
                       variant="outline" 
-                      onClick={() => resetPassword(user.user_id, user.full_name, user.email)}
+                      onClick={() => resetPassword(user.user_id, user.full_name, user.email, user.role)}
                       title="Reset Password"
                     >
                       🔑
@@ -792,31 +805,51 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Password Generated</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="h-5 w-5" />
+              Password Generated Successfully
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
+            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
               <Label className="text-sm font-medium">User Details</Label>
-              <div className="mt-1 text-sm text-muted-foreground">
-                <div><strong>Name:</strong> {passwordInfo?.userName}</div>
+              <div className="space-y-1 text-sm">
+                <div className="flex items-center gap-2">
+                  <strong>Name:</strong> {passwordInfo?.userName}
+                  {passwordInfo?.userRole && (
+                    <Badge variant={
+                      passwordInfo.userRole === 'Super Admin' ? 'destructive' :
+                      passwordInfo.userRole === 'Admin' ? 'default' :
+                      passwordInfo.userRole === 'Driver' ? 'secondary' : 'outline'
+                    }>
+                      {passwordInfo.userRole}
+                    </Badge>
+                  )}
+                </div>
                 <div><strong>Email:</strong> {passwordInfo?.userEmail}</div>
+                {passwordInfo?.userMobile && (
+                  <div><strong>Mobile:</strong> {passwordInfo.userMobile}</div>
+                )}
               </div>
             </div>
             
             <div>
-              <Label className="text-sm font-medium">Temporary Password</Label>
-              <div className="mt-2 p-3 bg-muted rounded-md font-mono text-sm select-all border">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Temporary Password
+              </Label>
+              <div className="mt-2 p-4 bg-primary/5 border-2 border-primary/20 rounded-md font-mono text-lg select-all">
                 {passwordInfo?.password}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Click the password above to select all, or use the copy button below
+              <p className="text-xs text-muted-foreground mt-2">
+                ⚠️ This password is temporary. Please share it securely with the user.
               </p>
             </div>
 
             <div className="flex gap-2">
               <Button 
                 onClick={() => copyToClipboard(passwordInfo?.password || '')}
-                className="flex-1"
+                className="flex-1 gap-2"
               >
                 📋 Copy Password
               </Button>

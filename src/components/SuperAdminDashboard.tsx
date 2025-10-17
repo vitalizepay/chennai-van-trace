@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog, LogOut, School, Building, Eye, Plus, Search, TrendingUp, UserCheck, CheckCircle } from "lucide-react";
+import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog, LogOut, School, Building, Eye, Plus, Search, TrendingUp, UserCheck, CheckCircle, Key } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import EnhancedGoogleMap from "./EnhancedGoogleMap";
@@ -12,6 +12,7 @@ import SchoolManagement from "./SchoolManagement";
 import UserCreationManager from "./UserCreationManager";
 import AdminUserAccess from "./AdminUserAccess";
 import SystemStatusGuide from "./SystemStatusGuide";
+import PasswordResetManager from "./PasswordResetManager";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Analytics {
@@ -344,7 +345,7 @@ const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => 
 
       <div className="p-4">
         <Tabs defaultValue="status" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-8">
+          <TabsList className="grid w-full grid-cols-9">
             <TabsTrigger value="status" className="gap-2">
               <CheckCircle className="h-4 w-4" />
               Status
@@ -360,6 +361,10 @@ const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => 
             <TabsTrigger value="users" className="gap-2">
               <Plus className="h-4 w-4" />
               Create Users
+            </TabsTrigger>
+            <TabsTrigger value="passwords" className="gap-2">
+              <Key className="h-4 w-4" />
+              Reset Passwords
             </TabsTrigger>
             <TabsTrigger value="admins" className="gap-2">
               <UserCog className="h-4 w-4" />
@@ -450,6 +455,10 @@ const SuperAdminDashboard = ({ language, onBack }: SuperAdminDashboardProps) => 
 
           <TabsContent value="users" className="space-y-4">
             <UserCreationManager language={language} />
+          </TabsContent>
+
+          <TabsContent value="passwords" className="space-y-4">
+            <PasswordResetManager language={language} />
           </TabsContent>
 
           <TabsContent value="admins" className="space-y-4">

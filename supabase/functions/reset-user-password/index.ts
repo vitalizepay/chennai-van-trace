@@ -29,11 +29,40 @@ serve(async (req) => {
       throw new Error('User ID is required')
     }
 
+    // Get user profile and role information
+    const { data: profileData, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('full_name, email, mobile')
+      .eq('user_id', userId)
+      .single()
+
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError)
+      throw profileError
+    }
+
+    // Get user roles
+    const { data: rolesData, error: rolesError } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+
+    if (rolesError) {
+      console.error('Error fetching user roles:', rolesError)
+      throw rolesError
+    }
+
+    const userRoles = rolesData?.map(r => r.role) || []
+    const primaryRole = userRoles.includes('super_admin') ? 'Super Admin' :
+                       userRoles.includes('admin') ? 'Admin' :
+                       userRoles.includes('driver') ? 'Driver' :
+                       userRoles.includes('parent') ? 'Parent' : 'User'
+
     // Use custom password if provided, otherwise generate a temporary password
     const password = customPassword || (Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase() + '123!')
     const isCustomPassword = !!customPassword
 
-    console.log(`${isCustomPassword ? 'Setting custom' : 'Resetting'} password for user: ${userId}`)
+    console.log(`${isCustomPassword ? 'Setting custom' : 'Resetting'} password for ${primaryRole}: ${userId}`)
 
     // Reset user password using admin client
     const { data, error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
@@ -45,7 +74,7 @@ serve(async (req) => {
       throw error
     }
 
-    console.log(`Password ${isCustomPassword ? 'set' : 'reset'} successful for user:`, userId)
+    console.log(`Password ${isCustomPassword ? 'set' : 'reset'} successful for ${primaryRole}:`, userId)
 
     // Log the activity
     await supabaseAdmin.from('user_activity_logs').insert({
@@ -54,7 +83,10 @@ serve(async (req) => {
       details: { 
         updated_at: new Date().toISOString(),
         updated_by: 'admin',
-        type: isCustomPassword ? 'custom_password' : 'temp_password'
+        type: isCustomPassword ? 'custom_password' : 'temp_password',
+        user_role: primaryRole,
+        user_name: profileData.full_name,
+        user_email: profileData.email
       }
     })
 
@@ -62,7 +94,14 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         tempPassword: isCustomPassword ? null : password,
-        message: `Password ${isCustomPassword ? 'set' : 'reset'} successfully`
+        message: `Password ${isCustomPassword ? 'set' : 'reset'} successfully`,
+        userInfo: {
+          name: profileData.full_name,
+          email: profileData.email,
+          mobile: profileData.mobile,
+          role: primaryRole,
+          roles: userRoles
+        }
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
