@@ -41,27 +41,31 @@ const SuperAdminAuth = ({ onSuccess }: SuperAdminAuthProps) => {
 
     setLoading(true);
     try {
-      console.log('Attempting login with mobile:', mobile);
+      console.log('=== SUPER ADMIN LOGIN DEBUG ===');
+      console.log('Mobile:', mobile);
+      console.log('Password length:', password.length);
+      console.log('Attempting login...');
+      
       const { error } = await signInWithMobilePassword(mobile, password, 'super_admin');
       
+      console.log('Login result:', { error });
+      console.log('Error details:', {
+        message: error?.message,
+        status: error?.status,
+        code: error?.code,
+        details: error
+      });
+      
       if (error) {
-        console.error('Login error:', error);
-        // Provide more specific error messages
-        let errorMessage = "Invalid mobile number or password";
-        if (error.message?.includes('Invalid login credentials')) {
-          errorMessage = "Invalid mobile number or password. Please check your credentials.";
-        } else if (error.message?.includes('User not found')) {
-          errorMessage = "No account found with this mobile number.";
-        } else if (error.message) {
-          errorMessage = error.message;
-        }
+        console.error('❌ Login error:', error);
         
         toast({
           title: "Login Failed",
-          description: errorMessage,
+          description: error.message || "Database error querying schema",
           variant: "destructive",
         });
       } else {
+        console.log('✅ Login successful');
         toast({
           title: "Login Successful",
           description: "Welcome back, Super Admin!",
@@ -69,7 +73,8 @@ const SuperAdminAuth = ({ onSuccess }: SuperAdminAuthProps) => {
         onSuccess();
       }
     } catch (err: any) {
-      console.error('Unexpected login error:', err);
+      console.error('❌ Unexpected login error:', err);
+      console.error('Error stack:', err?.stack);
       toast({
         title: "Login Error",
         description: err?.message || "An unexpected error occurred. Please try again.",
