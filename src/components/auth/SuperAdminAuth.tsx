@@ -41,11 +41,24 @@ const SuperAdminAuth = ({ onSuccess }: SuperAdminAuthProps) => {
 
     setLoading(true);
     try {
+      console.log('Attempting login with mobile:', mobile);
       const { error } = await signInWithMobilePassword(mobile, password, 'super_admin');
+      
       if (error) {
+        console.error('Login error:', error);
+        // Provide more specific error messages
+        let errorMessage = "Invalid mobile number or password";
+        if (error.message?.includes('Invalid login credentials')) {
+          errorMessage = "Invalid mobile number or password. Please check your credentials.";
+        } else if (error.message?.includes('User not found')) {
+          errorMessage = "No account found with this mobile number.";
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
         toast({
           title: "Login Failed",
-          description: error.message || "Invalid mobile number or password",
+          description: errorMessage,
           variant: "destructive",
         });
       } else {
@@ -55,10 +68,11 @@ const SuperAdminAuth = ({ onSuccess }: SuperAdminAuthProps) => {
         });
         onSuccess();
       }
-    } catch (err) {
+    } catch (err: any) {
+      console.error('Unexpected login error:', err);
       toast({
         title: "Login Error",
-        description: "An unexpected error occurred",
+        description: err?.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
