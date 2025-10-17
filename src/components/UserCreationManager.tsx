@@ -164,60 +164,27 @@ const UserCreationManager = ({ language }: UserCreationManagerProps) => {
     setLoading(true);
     
     try {
-      // First create the user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      // Prepare user data for edge function
+      const userData: any = {
         email: formData.email,
-        password: 'password123', // Default password
-        email_confirm: true,
-        user_metadata: {
-          full_name: formData.fullName,
-          mobile: formData.mobile,
-          role: formData.userType
-        }
-      });
+        mobile: formData.mobile,
+        fullName: formData.fullName,
+        role: formData.userType,
+        schoolId: formData.userType === 'super_admin' ? null : formData.schoolId,
+        password: formData.userType === 'admin' ? 'admin' : 
+                  formData.userType === 'driver' ? 'driver' : 
+                  formData.userType === 'parent' ? 'parent' : 'password123'
+      };
 
-      if (authError) throw authError;
-
-      const userId = authData.user.id;
-
-      // Create profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          user_id: userId,
-          email: formData.email,
-          full_name: formData.fullName,
-          mobile: formData.mobile,
-          status: 'approved'
-        });
-
-      if (profileError) throw profileError;
-
-      // Create user role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: userId,
-          role: formData.userType,
-          school_id: formData.userType === 'super_admin' ? null : formData.schoolId
-        });
-
-      if (roleError) throw roleError;
-
-      // Create specific details based on user type
+      // Add driver-specific data
       if (formData.userType === 'driver') {
-        const { error: driverError } = await supabase
-          .from('driver_details')
-          .insert({
-            user_id: userId,
-            license_number: formData.licenseNumber,
-            van_assigned: formData.vanAssigned,
-            route_assigned: formData.routeAssigned
-          });
+        userData.licenseNumber = formData.licenseNumber;
+        userData.vanAssigned = formData.vanAssigned;
+        userData.routeAssigned = formData.routeAssigned;
+      }
 
-        if (driverError) throw driverError;
-      } else if (formData.userType === 'parent') {
-        // Validate student information
+      // Add parent-specific data
+      if (formData.userType === 'parent') {
         const validStudents = students.filter(student => 
           student.fullName.trim() && student.grade.trim() && student.pickupStop.trim()
         );
@@ -226,40 +193,26 @@ const UserCreationManager = ({ language }: UserCreationManagerProps) => {
           throw new Error("Please provide at least one student with name, grade, and pickup stop");
         }
 
-        const { error: parentError } = await supabase
-          .from('parent_details')
-          .insert({
-            user_id: userId,
-            children_count: validStudents.length
-          });
-
-        if (parentError) throw parentError;
-
-        // Create students for this parent
-        const studentsToCreate = validStudents.map(student => ({
-          full_name: student.fullName.trim(),
-          grade: student.grade.trim(), 
-          pickup_stop: student.pickupStop.trim(),
-          medical_info: student.medicalInfo.trim() || null,
-          emergency_contact: formData.mobile, // Use parent mobile as emergency contact
-          parent_id: userId,
-          school_id: formData.schoolId,
-          van_id: formData.vanAssigned || null,
-          status: 'active',
-          boarded: false,
-          dropped: false
+        userData.childrenCount = validStudents.length;
+        userData.students = validStudents.map(student => ({
+          fullName: student.fullName.trim(),
+          grade: student.grade.trim(),
+          pickupStop: student.pickupStop.trim(),
+          medicalInfo: student.medicalInfo.trim() || null,
+          vanId: formData.vanAssigned || null
         }));
-
-        const { error: studentsError } = await supabase
-          .from('students')
-          .insert(studentsToCreate);
-
-        if (studentsError) throw studentsError;
       }
+
+      // Call the edge function
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: { userData }
+      });
+
+      if (error) throw error;
 
       toast({
         title: t.success,
-        description: `${formData.fullName} (${formData.userType}) created successfully`,
+        description: `${formData.fullName} (${formData.userType}) created successfully. Password: ${userData.password}`,
         className: "bg-success text-success-foreground"
       });
 
@@ -578,22 +531,73 @@ const UserCreationManager = ({ language }: UserCreationManagerProps) => {
               <div className="space-y-4">
                 <div className="text-center">
                   <h3 className="text-lg font-semibold">{t.loginInstructions}</h3>
-                  <p className="text-sm text-muted-foreground">All users created through this system use default credentials</p>
+                  <p className="text-sm text-muted-foreground">Default credentials for Little Indians School</p>
                 </div>
                 
                 <div className="grid gap-4">
-                  <Card>
+                  <Card className="border-green-200 bg-green-50">
                     <CardContent className="pt-4">
                       <div className="space-y-2">
-                        <Badge variant="outline" className="gap-1">
-                          <Shield className="h-3 w-3" />
-                          Default Password
+                        <Badge variant="outline" className="gap-1 bg-white">
+                          <School className="h-3 w-3" />
+                          Admin Login
                         </Badge>
                         <p className="text-sm">
-                          <strong>Password:</strong> <code className="bg-muted px-2 py-1 rounded">password123</code>
+                          <strong>Mobile:</strong> <code className="bg-white px-2 py-1 rounded">9898989898</code>
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          Users can login with their mobile number and this password
+                        <p className="text-sm">
+                          <strong>Password:</strong> <code className="bg-white px-2 py-1 rounded">admin</code>
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-blue-200 bg-blue-50">
+                    <CardContent className="pt-4">
+                      <div className="space-y-2">
+                        <Badge variant="outline" className="gap-1 bg-white">
+                          <Car className="h-3 w-3" />
+                          Driver Login
+                        </Badge>
+                        <p className="text-sm">
+                          <strong>Mobile:</strong> <code className="bg-white px-2 py-1 rounded">9999999999</code>
+                        </p>
+                        <p className="text-sm">
+                          <strong>Password:</strong> <code className="bg-white px-2 py-1 rounded">driver</code>
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-purple-200 bg-purple-50">
+                    <CardContent className="pt-4">
+                      <div className="space-y-2">
+                        <Badge variant="outline" className="gap-1 bg-white">
+                          <Users className="h-3 w-3" />
+                          Parent Login
+                        </Badge>
+                        <p className="text-sm">
+                          <strong>Mobile:</strong> <code className="bg-white px-2 py-1 rounded">9876543210</code>
+                        </p>
+                        <p className="text-sm">
+                          <strong>Password:</strong> <code className="bg-white px-2 py-1 rounded">parent</code>
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-red-200 bg-red-50">
+                    <CardContent className="pt-4">
+                      <div className="space-y-2">
+                        <Badge variant="outline" className="gap-1 bg-white">
+                          <Shield className="h-3 w-3 text-red-600" />
+                          Super Admin Login
+                        </Badge>
+                        <p className="text-sm">
+                          <strong>Mobile:</strong> <code className="bg-white px-2 py-1 rounded">9962901122</code>
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Password must be reset in Supabase Dashboard
                         </p>
                       </div>
                     </CardContent>
@@ -604,13 +608,13 @@ const UserCreationManager = ({ language }: UserCreationManagerProps) => {
                       <div className="space-y-2">
                         <Badge variant="outline" className="gap-1">
                           <Phone className="h-3 w-3" />
-                          Login Methods
+                          Login Instructions
                         </Badge>
                         <ul className="text-xs text-muted-foreground space-y-1">
-                          <li>• Admin: Email + Password OR Mobile + Password</li>
-                          <li>• Driver: Mobile + Password</li>
-                          <li>• Parent: Mobile + Password</li>
-                          <li>• Super Admin: Mobile + Password</li>
+                          <li>• Go to your role-specific login page</li>
+                          <li>• Enter your mobile number (10 digits)</li>
+                          <li>• Enter your password</li>
+                          <li>• Click "Sign In"</li>
                         </ul>
                       </div>
                     </CardContent>
