@@ -90,12 +90,12 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
 
   const texts = {
     en: {
-      title: "Admin User Management",
-      schoolAdmins: "School Administrators",
-      createAdmin: "Create School Admin",
-      pendingAdmins: "Pending Admins",
-      activeAdmins: "Active Admins",
-      searchPlaceholder: "Search administrators...",
+      title: "User Management - All Types",
+      schoolAdmins: "All Users (Admin, Driver, Parent, Super Admin)",
+      createAdmin: "Create User",
+      pendingAdmins: "Pending Users",
+      activeAdmins: "Active Users",
+      searchPlaceholder: "Search users by name, email, mobile, role...",
       filterByStatus: "Filter by Status",
       filterBySchool: "Filter by School",
       allStatuses: "All Statuses",
@@ -109,36 +109,37 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
       suspend: "Suspend",
       activate: "Activate",
       viewDetails: "View Details",
-      userDetails: "Administrator Details",
+      userDetails: "User Details",
       personalInfo: "Personal Information",
       schoolInfo: "School Information",
       activityLog: "Activity Log",
       registeredOn: "Registered on",
       lastActive: "Last active",
-      noUsers: "No administrators found",
+      noUsers: "No users found",
       phone: "Phone",
       email: "Email",
       fullName: "Full Name",
       school: "Assigned School",
       selectSchool: "Select School",
-      createAdminTitle: "Create School Administrator",
-      createAdminDesc: "Create a new administrator and assign them to a specific school.",
+      createAdminTitle: "Create User",
+      createAdminDesc: "Create a new user and assign them to a specific school.",
       basicInfo: "Basic Information",
       schoolAssignment: "School Assignment",
       cancel: "Cancel",
-      create: "Create Administrator",
-      adminCreated: "Administrator created successfully",
+      create: "Create User",
+      adminCreated: "User created successfully",
       hierarchy: "User Hierarchy",
       hierarchyDesc: "Super Admin → School Admin → Parents & Drivers",
-      unassigned: "Unassigned"
+      unassigned: "Unassigned",
+      resetPassword: "Reset Password"
     },
     ta: {
-      title: "நிர்வாக பயனர் மேலாண்மை",
-      schoolAdmins: "பள்ளி நிர்வாகிகள்",
-      createAdmin: "பள்ளி நிர்வாகியை உருவாக்கவும்",
-      pendingAdmins: "நிலுவையில் உள்ள நிர்வாகிகள்",
-      activeAdmins: "செயலில் உள்ள நிர்வாகிகள்",
-      searchPlaceholder: "நிர்வாகிகளைத் தேடுங்கள்...",
+      title: "பயனர் மேலாண்மை - அனைத்து வகைகள்",
+      schoolAdmins: "அனைத்து பயனர்கள் (நிர்வாகி, ஓட்டுநர், பெற்றோர், சூப்பர் நிர்வாகி)",
+      createAdmin: "பயனரை உருவாக்கவும்",
+      pendingAdmins: "நிலுவையில் உள்ள பயனர்கள்",
+      activeAdmins: "செயலில் உள்ள பயனர்கள்",
+      searchPlaceholder: "பெயர், மின்னஞ்சல், மொபைல், பங்கு மூலம் தேடுங்கள்...",
       filterByStatus: "நிலையின் அடிப்படையில் வடிகட்டு",
       filterBySchool: "பள்ளியின் அடிப்படையில் வடிகட்டு",
       allStatuses: "அனைத்து நிலைகள்",
@@ -152,28 +153,29 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
       suspend: "இடைநிறுத்து",
       activate: "செயல்படுத்து",
       viewDetails: "விவரங்களைப் பார்க்கவும்",
-      userDetails: "நிர்வாகி விவரங்கள்",
+      userDetails: "பயனர் விவரங்கள்",
       personalInfo: "தனிப்பட்ட தகவல்",
       schoolInfo: "பள்ளி தகவல்",
       activityLog: "செயல்பாட்டு பதிவு",
       registeredOn: "பதிவு செய்யப்பட்ட தேதி",
       lastActive: "கடைசியாக செயலில்",
-      noUsers: "நிர்வாகிகள் இல்லை",
+      noUsers: "பயனர்கள் இல்லை",
       phone: "தொலைபேசி",
       email: "மின்னஞ்சல்",
       fullName: "முழு பெயர்",
       school: "ஒதுக்கப்பட்ட பள்ளி",
       selectSchool: "பள்ளியைத் தேர்ந்தெடுக்கவும்",
-      createAdminTitle: "பள்ளி நிர்வாகியை உருவாக்கவும்",
-      createAdminDesc: "புதிய நிர்வாகியை உருவாக்கி குறிப்பிட்ட பள்ளிக்கு ஒதுக்கவும்.",
+      createAdminTitle: "பயனரை உருவாக்கவும்",
+      createAdminDesc: "புதிய பயனரை உருவாக்கி குறிப்பிட்ட பள்ளிக்கு ஒதுக்கவும்.",
       basicInfo: "அடிப்படை தகவல்",
       schoolAssignment: "பள்ளி ஒதுக்கீடு",
       cancel: "ரத்து செய்",
-      create: "நிர்வாகியை உருவாக்கவும்",
-      adminCreated: "நிர்வாகி வெற்றிகரமாக உருவாக்கப்பட்டது",
+      create: "பயனரை உருவாக்கவும்",
+      adminCreated: "பயனர் வெற்றிகரமாக உருவாக்கப்பட்டது",
       hierarchy: "பயனர் படிநிலை",
       hierarchyDesc: "சூப்பர் நிர்வாகி → பள்ளி நிர்வாகி → பெற்றோர்கள் & ஓட்டுநர்கள்",
-      unassigned: "ஒதுக்கப்படவில்லை"
+      unassigned: "ஒதுக்கப்படவில்லை",
+      resetPassword: "கடவுச்சொல்லை மீட்டமை"
     }
   };
 
@@ -215,15 +217,10 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
     try {
       setLoading(true);
       
-      // Determine which roles to fetch based on current user's role
-      let rolesToFetch: ('admin' | 'super_admin')[] = [];
-      if (userRole === 'super_admin') {
-        // Super admins can see both admin and super_admin users
-        rolesToFetch = ['admin', 'super_admin'];
-      } else {
-        // Regular admins can only see other admin users (not super_admin)
-        rolesToFetch = ['admin'];
-      }
+      // Fetch ALL user types for super admin
+      const rolesToFetch: ('admin' | 'super_admin' | 'driver' | 'parent')[] = userRole === 'super_admin' 
+        ? ['admin', 'super_admin', 'driver', 'parent']
+        : ['admin']; // Regular admins see only other admins
       
       // Get users with appropriate roles
       const { data: adminRoles, error: rolesError } = await supabase
@@ -642,10 +639,24 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
               <div key={user.user_id} className="flex items-center justify-between p-4 border-b last:border-0">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                    <Users className="h-5 w-5 text-primary" />
+                    {user.role === 'super_admin' && <Shield className="h-5 w-5 text-red-600" />}
+                    {user.role === 'admin' && <School className="h-5 w-5 text-primary" />}
+                    {user.role === 'driver' && <Activity className="h-5 w-5 text-blue-600" />}
+                    {user.role === 'parent' && <Users className="h-5 w-5 text-purple-600" />}
                   </div>
                   <div>
-                    <h3 className="font-medium">{user.full_name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium">{user.full_name}</h3>
+                      <Badge variant={
+                        user.role === 'super_admin' ? 'destructive' :
+                        user.role === 'admin' ? 'default' :
+                        user.role === 'driver' ? 'secondary' : 'outline'
+                      }>
+                        {user.role === 'super_admin' ? 'Super Admin' :
+                         user.role === 'admin' ? 'Admin' :
+                         user.role === 'driver' ? 'Driver' : 'Parent'}
+                      </Badge>
+                    </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Mail className="h-3 w-3" />
                       {user.email}
@@ -690,9 +701,10 @@ const SuperAdminUserManagement = ({ language }: SuperAdminUserManagementProps) =
                       size="sm" 
                       variant="outline" 
                       onClick={() => resetPassword(user.user_id, user.full_name, user.email, user.role)}
-                      title="Reset Password"
+                      title={t.resetPassword}
+                      className="gap-1"
                     >
-                      🔑
+                      <Key className="h-3 w-3" />
                     </Button>
                     <Button 
                       size="sm" 
