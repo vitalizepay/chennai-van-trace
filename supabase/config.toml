@@ -2,3 +2,6 @@ project_id = "zbsxipmvxtkxwavbhqsr"
 
 [functions.send-otp]
 verify_jwt = false
+
+[functions.list-all-users]
+verify_jwt = true
