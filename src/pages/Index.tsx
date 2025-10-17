@@ -147,7 +147,7 @@ const Index = () => {
 
           {/* Role Selection */}
           <Tabs defaultValue="parent" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-white/10 backdrop-blur-sm border border-white/20">
+            <TabsList className="grid w-full grid-cols-3 bg-white/10 backdrop-blur-sm border border-white/20">
               <TabsTrigger 
                 value="parent" 
                 className="gap-2 data-[state=active]:bg-white data-[state=active]:text-primary text-white/80"
@@ -161,6 +161,13 @@ const Index = () => {
               >
                 <Bus className="h-4 w-4" />
                 {t.driver}
+              </TabsTrigger>
+              <TabsTrigger 
+                value="admin" 
+                className="gap-2 data-[state=active]:bg-white data-[state=active]:text-primary text-white/80"
+              >
+                <Shield className="h-4 w-4" />
+                {t.admin}
               </TabsTrigger>
             </TabsList>
 
@@ -187,16 +194,28 @@ const Index = () => {
                 texts={t}
               />
             </TabsContent>
+
+            <TabsContent value="admin">
+              <RoleCard
+                role="super_admin"
+                title="Super Admin"
+                description="Manage all schools and system settings"
+                icon={<Shield className="h-6 w-6" />}
+                color="admin"
+                onLogin={setCurrentRole}
+                texts={t}
+              />
+            </TabsContent>
           </Tabs>
 
-          {/* Admin Login Link */}
+          {/* School Admin Login Link */}
           <div className="text-center pt-4">
             <button 
               className="text-white/70 hover:text-white text-xs underline"
               onClick={() => navigate('/school-admin')}
               type="button"
             >
-              Admin Login
+              School Admin Login
             </button>
           </div>
 
