@@ -457,51 +457,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const checkTempPassword = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        // Check if user has already changed from temp password by looking at activity logs
-        const { data: passwordChangeLog } = await supabase
-          .from('user_activity_logs')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('action', 'password_changed')
-          .limit(1);
-
-        // If user has already changed password, don't prompt again
-        if (passwordChangeLog && passwordChangeLog.length > 0) {
-          setNeedsPasswordChange(false);
-          return false;
-        }
-
-        // Check user profile for password change indicators
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('created_at, updated_at, status')
-          .eq('user_id', user.id)
-          .single();
-          
-        if (profile) {
-          // Check if user was created recently (within 48 hours) and profile hasn't been significantly updated
-          const userCreated = new Date(user.created_at);
-          const profileUpdated = new Date(profile.updated_at);
-          const now = new Date();
-          const userAgeHours = (now.getTime() - userCreated.getTime()) / (1000 * 3600);
-          const timeSinceUpdate = (now.getTime() - profileUpdated.getTime()) / (1000 * 60); // minutes
-          
-          // Only prompt for password change if:
-          // 1. User was created recently (within 48 hours) 
-          // 2. Profile was updated recently (less than 24 hours ago) - indicating fresh temp password
-          // 3. Or if the user was created very recently (less than 1 hour) regardless of profile update time
-          const isRecentUser = userAgeHours < 48;
-          const hasRecentUpdate = timeSinceUpdate < (24 * 60); // 24 hours in minutes
-          const isVeryNewUser = userAgeHours < 1; // Less than 1 hour old
-          
-          const needsChange = (isRecentUser && hasRecentUpdate) || isVeryNewUser;
-          setNeedsPasswordChange(needsChange);
-          return needsChange;
-        }
+      if (!user) {
+        setNeedsPasswordChange(false);
+        return false;
       }
-      setNeedsPasswordChange(false);
-      return false;
+
+      // Use the new database function for reliable temp password checking
+      const { data: hasPermanentPassword, error } = await supabase
+        .rpc('user_has_permanent_password', { _user_id: user.id });
+
+      if (error) {
+        console.error('Error checking permanent password:', error);
+        setNeedsPasswordChange(false);
+        return false;
+      }
+
+      // If user has permanent password, don't prompt for change
+      if (hasPermanentPassword) {
+        setNeedsPasswordChange(false);
+        return false;
+      }
+
+      // Check for recent password reset activity that requires change
+      const { data: recentReset } = await supabase
+        .from('user_activity_logs')
+        .select('id')
+        .eq('user_id', user.id)
+        .in('action', ['password_reset_by_admin', 'password_set_by_admin'])
+        .gte('created_at', new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
+        .limit(1);
+
+      const needsChange = recentReset && recentReset.length > 0;
+      setNeedsPasswordChange(needsChange);
+      return needsChange;
     } catch (error) {
       console.error('Error checking temp password:', error);
       setNeedsPasswordChange(false);

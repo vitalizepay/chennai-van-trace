@@ -481,6 +481,10 @@ export type Database = {
         Args: { _user_email: string }
         Returns: undefined
       }
+      user_has_permanent_password: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       verify_otp: {
         Args: { _mobile: string; _otp_code: string; _purpose?: string }
         Returns: boolean
