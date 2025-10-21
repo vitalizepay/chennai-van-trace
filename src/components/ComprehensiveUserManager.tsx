@@ -159,34 +159,42 @@ const ComprehensiveUserManager = ({ language }: ComprehensiveUserManagerProps) =
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // First fetch profiles
+      const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
-        .select(`
-          user_id,
-          full_name,
-          email,
-          mobile,
-          status,
-          user_roles (
-            role,
-            schools (name)
-          )
-        `)
+        .select("user_id, full_name, email, mobile, status")
         .order("full_name");
 
-      if (error) throw error;
+      if (profilesError) throw profilesError;
 
-      const formattedUsers: User[] = (data || []).map((user: any) => ({
-        id: user.user_id,
-        email: user.email,
-        full_name: user.full_name,
-        mobile: user.mobile,
-        status: user.status,
-        role: user.user_roles?.[0]?.role || "unknown",
-        school_name: user.user_roles?.[0]?.schools?.name || "",
-      }));
+      // Then fetch user roles with schools for each user
+      const usersWithRoles = await Promise.all(
+        (profilesData || []).map(async (profile: any) => {
+          const { data: rolesData } = await supabase
+            .from("user_roles")
+            .select(`
+              role,
+              school_id,
+              schools (name)
+            `)
+            .eq("user_id", profile.user_id)
+            .limit(1)
+            .maybeSingle();
 
-      setUsers(formattedUsers);
+          return {
+            id: profile.user_id,
+            email: profile.email,
+            full_name: profile.full_name,
+            mobile: profile.mobile,
+            status: profile.status,
+            role: rolesData?.role || "unknown",
+            school_name: rolesData?.schools?.name || "",
+          };
+        })
+      );
+
+      setUsers(usersWithRoles);
     } catch (error) {
       console.error("Error fetching users:", error);
     } finally {
