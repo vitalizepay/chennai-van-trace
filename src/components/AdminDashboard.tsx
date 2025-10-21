@@ -360,7 +360,12 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <EnhancedGoogleMap height="h-48" className="rounded-lg" />
+                    <EnhancedGoogleMap 
+                      height="h-48" 
+                      className="rounded-lg" 
+                      schoolId={schoolData?.id}
+                      showAllVans={false}
+                    />
                   </CardContent>
                 </Card>
               </CardContent>
