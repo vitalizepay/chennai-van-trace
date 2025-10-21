@@ -363,8 +363,7 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
                     <EnhancedGoogleMap 
                       height="h-48" 
                       className="rounded-lg" 
-                      schoolId={schoolData?.id}
-                      showAllVans={false}
+                      showAllVans={true}
                     />
                   </CardContent>
                 </Card>
