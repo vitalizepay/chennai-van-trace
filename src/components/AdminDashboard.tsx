@@ -12,6 +12,7 @@ import ComprehensiveUserManager from "./ComprehensiveUserManager";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface AdminDashboardProps {
   language: "en" | "ta";
@@ -71,6 +72,10 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
     { id: "3", type: "maintenance", message: "Scheduled maintenance due", time: "1 hour ago", van: "Maintenance Van" },
   ]);
   const [isCreateVanOpen, setIsCreateVanOpen] = useState(false);
+  const [isManageDriverOpen, setIsManageDriverOpen] = useState(false);
+  const [selectedVan, setSelectedVan] = useState<Van | null>(null);
+  const [availableDrivers, setAvailableDrivers] = useState<Array<{ id: string; name: string; currentVan: string | null }>>([]);
+  const [selectedDriverId, setSelectedDriverId] = useState<string>("");
   const [newVan, setNewVan] = useState({
     van_number: "",
     route_name: "",
@@ -264,6 +269,133 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
       description: `Route: ${van.route_name || 'No route assigned'} | Students: ${van.current_students}/${van.capacity} | Status: ${van.status}`,
       className: "bg-primary text-primary-foreground"
     });
+  };
+
+  const fetchAvailableDrivers = async () => {
+    if (!schoolData) return;
+
+    try {
+      // Get all drivers for this school
+      const { data: driverRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select(`
+          user_id,
+          profiles!inner(full_name)
+        `)
+        .eq('role', 'driver')
+        .eq('school_id', schoolData.id);
+
+      if (rolesError) throw rolesError;
+
+      // Get current van assignments
+      const { data: vanAssignments, error: vansError } = await supabase
+        .from('vans')
+        .select('id, van_number, driver_id')
+        .eq('school_id', schoolData.id);
+
+      if (vansError) throw vansError;
+
+      // Map drivers with their current van assignments
+      const drivers = (driverRoles || []).map((role: any) => {
+        const assignedVan = (vanAssignments || []).find(v => v.driver_id === role.user_id);
+        return {
+          id: role.user_id,
+          name: role.profiles.full_name,
+          currentVan: assignedVan ? assignedVan.van_number : null
+        };
+      });
+
+      setAvailableDrivers(drivers);
+    } catch (error) {
+      console.error('Error fetching drivers:', error);
+    }
+  };
+
+  const handleManageDriver = (van: Van) => {
+    setSelectedVan(van);
+    setSelectedDriverId(van.driver_id || "");
+    fetchAvailableDrivers();
+    setIsManageDriverOpen(true);
+  };
+
+  const handleAssignDriver = async () => {
+    if (!selectedVan) return;
+
+    try {
+      // If unassigning driver (empty selection)
+      if (!selectedDriverId || selectedDriverId === "unassign") {
+        const { error } = await supabase
+          .from('vans')
+          .update({ 
+            driver_id: null,
+            status: 'inactive'
+          })
+          .eq('id', selectedVan.id);
+
+        if (error) throw error;
+
+        // Also update driver_details to remove van assignment
+        if (selectedVan.driver_id) {
+          await supabase
+            .from('driver_details')
+            .update({ van_assigned: null })
+            .eq('user_id', selectedVan.driver_id);
+        }
+
+        toast({
+          title: "Driver Unassigned",
+          description: `Driver removed from ${selectedVan.van_number}`,
+        });
+      } else {
+        // Assigning a new driver
+        
+        // First, remove this driver from any other vans
+        await supabase
+          .from('vans')
+          .update({ driver_id: null })
+          .eq('driver_id', selectedDriverId);
+
+        // Assign driver to the selected van
+        const { error } = await supabase
+          .from('vans')
+          .update({ 
+            driver_id: selectedDriverId,
+            status: 'active'
+          })
+          .eq('id', selectedVan.id);
+
+        if (error) throw error;
+
+        // Update driver_details
+        await supabase
+          .from('driver_details')
+          .update({ 
+            van_assigned: selectedVan.van_number,
+            route_assigned: selectedVan.route_name
+          })
+          .eq('user_id', selectedDriverId);
+
+        toast({
+          title: "Driver Assigned",
+          description: `Driver successfully assigned to ${selectedVan.van_number}`,
+          className: "bg-success text-success-foreground"
+        });
+      }
+
+      setIsManageDriverOpen(false);
+      setSelectedVan(null);
+      setSelectedDriverId("");
+      
+      // Refresh van data
+      fetchSchoolData();
+    } catch (error: any) {
+      console.error('Error assigning driver:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to assign driver",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleCreateVan = async () => {
@@ -553,12 +685,24 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
                         <p className="text-sm text-muted-foreground">
                           {van.route_name || "No route assigned"} • Capacity: {van.capacity}
                         </p>
+                        {van.driver_id && (
+                          <p className="text-xs text-primary mt-1">Driver assigned</p>
+                        )}
                       </div>
                       <div className="flex items-center gap-3">
                         <Badge className={`bg-${getStatusColor(van.status)} text-${getStatusColor(van.status)}-foreground`}>
                           {t[van.status as keyof typeof t] || van.status}
                         </Badge>
                         <span className="text-sm font-medium">{van.current_students}/{van.capacity} students</span>
+                        <Button 
+                          variant="secondary" 
+                          size="sm"
+                          onClick={() => handleManageDriver(van)}
+                          className="gap-2"
+                        >
+                          <UserCog className="h-4 w-4" />
+                          Manage Driver
+                        </Button>
                         <Button 
                           variant="outline" 
                           size="sm"
@@ -572,6 +716,71 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Manage Driver Dialog */}
+            <Dialog open={isManageDriverOpen} onOpenChange={setIsManageDriverOpen}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Manage Van Driver</DialogTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Assign or swap driver for {selectedVan?.van_number}
+                  </p>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label>Current Route</Label>
+                    <p className="text-sm font-medium mt-1">{selectedVan?.route_name || "No route"}</p>
+                  </div>
+                  <div>
+                    <Label htmlFor="driver-select">Assign Driver</Label>
+                    <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
+                      <SelectTrigger id="driver-select" className="mt-1">
+                        <SelectValue placeholder="Select a driver" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassign">
+                          <span className="text-muted-foreground">Unassign driver</span>
+                        </SelectItem>
+                        {availableDrivers.map((driver) => (
+                          <SelectItem key={driver.id} value={driver.id}>
+                            <div className="flex items-center gap-2">
+                              <span>{driver.name}</span>
+                              {driver.currentVan && (
+                                <Badge variant="secondary" className="text-xs">
+                                  Currently: {driver.currentVan}
+                                </Badge>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Note: Assigning a driver will remove them from their current van
+                    </p>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setIsManageDriverOpen(false);
+                        setSelectedVan(null);
+                        setSelectedDriverId("");
+                      }}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleAssignDriver}
+                      className="flex-1"
+                    >
+                      Assign Driver
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="users" className="space-y-4">
