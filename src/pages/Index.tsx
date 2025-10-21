@@ -190,20 +190,13 @@ const Index = () => {
           </Tabs>
 
           {/* Admin Login Links */}
-          <div className="text-center pt-4 space-y-2">
+          <div className="text-center pt-4">
             <button 
               className="text-white/70 hover:text-white text-xs underline block w-full"
               onClick={() => navigate('/school-admin')}
               type="button"
             >
               School Admin Login
-            </button>
-            <button 
-              className="text-white/70 hover:text-white text-xs underline block w-full"
-              onClick={() => navigate('/admin-portal')}
-              type="button"
-            >
-              Super Admin Login
             </button>
           </div>
 
