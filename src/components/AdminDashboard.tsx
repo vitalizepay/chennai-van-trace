@@ -8,7 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import EnhancedGoogleMap from "./EnhancedGoogleMap";
-import UserManagement from "./UserManagement";
+import ComprehensiveUserManager from "./ComprehensiveUserManager";
 
 interface AdminDashboardProps {
   language: "en" | "ta";
@@ -424,26 +424,7 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
           </TabsContent>
 
           <TabsContent value="users" className="space-y-4">
-            {/* Admin Role Info */}
-            <Card className="bg-admin/5 border-admin/20 mb-4">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <Shield className="h-5 w-5 text-admin" />
-                  <h3 className="font-semibold text-admin">School Admin Role</h3>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  As a school admin, you can create and manage parent and driver accounts for your school only.
-                </p>
-                <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                  <Badge variant="outline" className="text-xs">Super Admin</Badge>
-                  <span>→</span>
-                  <Badge className="bg-admin text-admin-foreground text-xs">School Admin (You)</Badge>
-                  <span>→</span>
-                  <Badge variant="outline" className="text-xs">Parents & Drivers</Badge>
-                </div>
-              </CardContent>
-            </Card>
-            <UserManagement language={language} />
+            <ComprehensiveUserManager language={language} />
           </TabsContent>
 
           <TabsContent value="alerts" className="space-y-4">

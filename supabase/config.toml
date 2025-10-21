@@ -3,5 +3,17 @@ project_id = "zbsxipmvxtkxwavbhqsr"
 [functions.send-otp]
 verify_jwt = false
 
+[functions.create-user]
+verify_jwt = true
+
+[functions.reset-user-password]
+verify_jwt = true
+
+[functions.delete-user]
+verify_jwt = true
+
+[functions.get-google-maps-key]
+verify_jwt = true
+
 [functions.list-all-users]
 verify_jwt = true
