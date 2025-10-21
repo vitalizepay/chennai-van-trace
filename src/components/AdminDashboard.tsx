@@ -275,17 +275,30 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
     if (!schoolData) return;
 
     try {
-      // Get all drivers for this school
+      // Get all driver user_ids for this school
       const { data: driverRoles, error: rolesError } = await supabase
         .from('user_roles')
-        .select(`
-          user_id,
-          profiles!inner(full_name)
-        `)
+        .select('user_id')
         .eq('role', 'driver')
         .eq('school_id', schoolData.id);
 
       if (rolesError) throw rolesError;
+
+      if (!driverRoles || driverRoles.length === 0) {
+        setAvailableDrivers([]);
+        return;
+      }
+
+      // Get driver IDs
+      const driverIds = driverRoles.map(r => r.user_id);
+
+      // Fetch profiles for these drivers
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .in('user_id', driverIds);
+
+      if (profilesError) throw profilesError;
 
       // Get current van assignments
       const { data: vanAssignments, error: vansError } = await supabase
@@ -296,18 +309,24 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
       if (vansError) throw vansError;
 
       // Map drivers with their current van assignments
-      const drivers = (driverRoles || []).map((role: any) => {
-        const assignedVan = (vanAssignments || []).find(v => v.driver_id === role.user_id);
+      const drivers = (profiles || []).map((profile: any) => {
+        const assignedVan = (vanAssignments || []).find(v => v.driver_id === profile.user_id);
         return {
-          id: role.user_id,
-          name: role.profiles.full_name,
+          id: profile.user_id,
+          name: profile.full_name,
           currentVan: assignedVan ? assignedVan.van_number : null
         };
       });
 
+      console.log('Available drivers:', drivers);
       setAvailableDrivers(drivers);
     } catch (error) {
       console.error('Error fetching drivers:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load drivers",
+        variant: "destructive"
+      });
     }
   };
 
