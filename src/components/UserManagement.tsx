@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -26,7 +27,8 @@ import {
   Mail,
   MapPin,
   Car,
-  Calendar
+  Calendar,
+  Trash2
 } from "lucide-react";
 
 interface User {
@@ -89,6 +91,8 @@ const UserManagement = ({ language }: UserManagementProps) => {
   const [passwordUser, setPasswordUser] = useState<{ id: string; name: string; email: string } | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const texts = {
     en: {
@@ -136,7 +140,14 @@ const UserManagement = ({ language }: UserManagementProps) => {
       licenseExpiry: "License Expiry",
       experience: "Experience",
       vanAssigned: "Van Assigned",
-      routeAssigned: "Route Assigned"
+      routeAssigned: "Route Assigned",
+      deleteUser: "Delete User",
+      deleteConfirmTitle: "Delete User",
+      deleteConfirmDesc: "Are you sure you want to delete this user? This action cannot be undone.",
+      deleting: "Deleting...",
+      delete: "Delete",
+      cancel: "Cancel",
+      userDeleted: "User deleted successfully"
     },
     ta: {
       title: "பயனர் மேலாண்மை",
@@ -183,7 +194,14 @@ const UserManagement = ({ language }: UserManagementProps) => {
       licenseExpiry: "உரிமம் காலாவதி",
       experience: "அனுபவம்",
       vanAssigned: "ஒதுக்கப்பட்ட வேன்",
-      routeAssigned: "ஒதுக்கப்பட்ட பாதை"
+      routeAssigned: "ஒதுக்கப்பட்ட பாதை",
+      deleteUser: "பயனரை நீக்கு",
+      deleteConfirmTitle: "பயனரை நீக்கு",
+      deleteConfirmDesc: "இந்த பயனரை நிச்சயமாக நீக்க விரும்புகிறீர்களா? இந்தச் செயலைச் செயல்தவிர்க்க முடியாது.",
+      deleting: "நீக்குகிறது...",
+      delete: "நீக்கு",
+      cancel: "ரத்து செய்",
+      userDeleted: "பயனர் வெற்றிகரமாக நீக்கப்பட்டது"
     }
   };
 
@@ -422,6 +440,40 @@ const UserManagement = ({ language }: UserManagementProps) => {
         description: "Failed to assign role",
         variant: "destructive",
       });
+    }
+  };
+
+  const deleteUser = async () => {
+    if (!userToDelete) return;
+
+    try {
+      setLoading(true);
+
+      const { data, error } = await supabase.functions.invoke("delete-user", {
+        body: { userId: userToDelete.id },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: t.userDeleted,
+          description: `${userToDelete.name} has been deleted`,
+        });
+        
+        setShowDeleteDialog(false);
+        setUserToDelete(null);
+        fetchUsers();
+      }
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -794,6 +846,22 @@ const UserManagement = ({ language }: UserManagementProps) => {
                   >
                     🔑
                     {t.setPassword}
+                  </Button>
+
+                  <Button 
+                    size="sm" 
+                    variant="destructive" 
+                    className="gap-1"
+                    onClick={() => {
+                      setUserToDelete({ 
+                        id: user.user_id, 
+                        name: user.full_name 
+                      });
+                      setShowDeleteDialog(true);
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    {t.deleteUser}
                   </Button>
 
                   <Dialog>
@@ -1321,6 +1389,34 @@ const UserManagement = ({ language }: UserManagementProps) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t.deleteConfirmTitle}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t.deleteConfirmDesc}
+              {userToDelete && (
+                <div className="mt-2 p-2 bg-muted rounded">
+                  <strong>{userToDelete.name}</strong>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setUserToDelete(null)}>
+              {t.cancel}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={deleteUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {loading ? t.deleting : t.delete}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -6,10 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Users, UserPlus, Key, Loader2, Copy, CheckCircle2 } from "lucide-react";
+import { Users, UserPlus, Key, Loader2, Copy, CheckCircle2, Trash2 } from "lucide-react";
 
 interface ComprehensiveUserManagerProps {
   language: "en" | "ta";
@@ -38,6 +39,8 @@ const ComprehensiveUserManager = ({ language }: ComprehensiveUserManagerProps) =
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [tempPassword, setTempPassword] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -93,6 +96,13 @@ const ComprehensiveUserManager = ({ language }: ComprehensiveUserManagerProps) =
       mobile: "Mobile",
       status: "Status",
       actions: "Actions",
+      deleteUser: "Delete User",
+      deleteConfirmTitle: "Delete User",
+      deleteConfirmDesc: "Are you sure you want to delete this user? This action cannot be undone.",
+      deleting: "Deleting...",
+      delete: "Delete",
+      cancel: "Cancel",
+      userDeleted: "User deleted successfully"
     },
     ta: {
       title: "பயனர் மேலாண்மை அமைப்பு",
@@ -131,6 +141,13 @@ const ComprehensiveUserManager = ({ language }: ComprehensiveUserManagerProps) =
       mobile: "கைபேசி",
       status: "நிலை",
       actions: "செயல்கள்",
+      deleteUser: "பயனரை நீக்கு",
+      deleteConfirmTitle: "பயனரை நீக்கு",
+      deleteConfirmDesc: "இந்த பயனரை நிச்சயமாக நீக்க விரும்புகிறீர்களா? இந்தச் செயலைச் செயல்தவிர்க்க முடியாது.",
+      deleting: "நீக்குகிறது...",
+      delete: "நீக்கு",
+      cancel: "ரத்து செய்",
+      userDeleted: "பயனர் வெற்றிகரமாக நீக்கப்பட்டது"
     },
   };
 
@@ -320,6 +337,40 @@ const ComprehensiveUserManager = ({ language }: ComprehensiveUserManagerProps) =
       title: t.copied,
       description: "Password copied to clipboard",
     });
+  };
+
+  const deleteUser = async () => {
+    if (!userToDelete) return;
+
+    try {
+      setLoading(true);
+
+      const { data, error } = await supabase.functions.invoke("delete-user", {
+        body: { userId: userToDelete.id },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: t.userDeleted,
+          description: `${userToDelete.name} has been deleted`,
+        });
+        
+        setShowDeleteDialog(false);
+        setUserToDelete(null);
+        fetchUsers();
+      }
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getRoleBadge = (role: string) => {
@@ -554,6 +605,18 @@ const ComprehensiveUserManager = ({ language }: ComprehensiveUserManagerProps) =
                               </>
                             )}
                           </Button>
+                          <Button
+                            onClick={() => {
+                              setUserToDelete({ id: user.id, name: user.full_name });
+                              setShowDeleteDialog(true);
+                            }}
+                            disabled={loading}
+                            variant="destructive"
+                            size="sm"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            {t.deleteUser}
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -608,6 +671,34 @@ const ComprehensiveUserManager = ({ language }: ComprehensiveUserManagerProps) =
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t.deleteConfirmTitle}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t.deleteConfirmDesc}
+              {userToDelete && (
+                <div className="mt-2 p-2 bg-muted rounded">
+                  <strong>{userToDelete.name}</strong>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setUserToDelete(null)}>
+              {t.cancel}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={deleteUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {loading ? t.deleting : t.delete}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
