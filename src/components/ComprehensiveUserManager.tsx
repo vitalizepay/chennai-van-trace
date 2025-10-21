@@ -36,6 +36,7 @@ const ComprehensiveUserManager = ({ language }: ComprehensiveUserManagerProps) =
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
+  const [availableVans, setAvailableVans] = useState<Array<{ id: string; van_number: string; route_name: string }>>([]);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [tempPassword, setTempPassword] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -56,7 +57,15 @@ const ComprehensiveUserManager = ({ language }: ComprehensiveUserManagerProps) =
     address: "",
     emergencyContact: "",
     childrenCount: "1",
+    parentVanId: "",
   });
+
+  const [students, setStudents] = useState<Array<{
+    fullName: string;
+    grade: string;
+    pickupStop: string;
+    medicalInfo: string;
+  }>>([{ fullName: "", grade: "", pickupStop: "", medicalInfo: "" }]);
 
   const texts = {
     en: {
@@ -96,6 +105,15 @@ const ComprehensiveUserManager = ({ language }: ComprehensiveUserManagerProps) =
       mobile: "Mobile",
       status: "Status",
       actions: "Actions",
+      van: "Van",
+      selectVan: "Select Van",
+      studentDetails: "Student Details",
+      studentName: "Student Name",
+      grade: "Grade / Class",
+      pickupStop: "Pickup Stop / Location",
+      medicalInfo: "Medical Info (Optional)",
+      addStudent: "Add Another Student",
+      removeStudent: "Remove Student",
       deleteUser: "Delete User",
       deleteConfirmTitle: "Delete User",
       deleteConfirmDesc: "Are you sure you want to delete this user? This action cannot be undone.",
@@ -147,7 +165,16 @@ const ComprehensiveUserManager = ({ language }: ComprehensiveUserManagerProps) =
       deleting: "நீக்குகிறது...",
       delete: "நீக்கு",
       cancel: "ரத்து செய்",
-      userDeleted: "பயனர் வெற்றிகரமாக நீக்கப்பட்டது"
+      userDeleted: "பயனர் வெற்றிகரமாக நீக்கப்பட்டது",
+      van: "வேன்",
+      selectVan: "வேனைத் தேர்ந்தெடுக்கவும்",
+      studentDetails: "மாணவர் விவரங்கள்",
+      studentName: "மாணவர் பெயர்",
+      grade: "வகுப்பு",
+      pickupStop: "பிக்கப் நிறுத்தம்",
+      medicalInfo: "மருத்துவ தகவல் (விருப்பம்)",
+      addStudent: "மற்றொரு மாணவரைச் சேர்க்கவும்",
+      removeStudent: "மாணவரை அகற்று",
     },
   };
 
@@ -155,6 +182,7 @@ const ComprehensiveUserManager = ({ language }: ComprehensiveUserManagerProps) =
 
   useEffect(() => {
     fetchSchools();
+    fetchVans();
     fetchUsers();
   }, []);
 
@@ -170,6 +198,21 @@ const ComprehensiveUserManager = ({ language }: ComprehensiveUserManagerProps) =
       setSchools(data || []);
     } catch (error) {
       console.error("Error fetching schools:", error);
+    }
+  };
+
+  const fetchVans = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("vans")
+        .select("id, van_number, route_name")
+        .eq("status", "active")
+        .order("van_number");
+
+      if (error) throw error;
+      setAvailableVans(data || []);
+    } catch (error) {
+      console.error("Error fetching vans:", error);
     }
   };
 
@@ -245,6 +288,8 @@ const ComprehensiveUserManager = ({ language }: ComprehensiveUserManagerProps) =
           address: formData.address,
           emergencyContact: formData.emergencyContact || formData.phone,
           childrenCount: formData.childrenCount,
+          parentVanId: formData.parentVanId || null,
+          students: students.filter(s => s.fullName.trim() !== ""),
         }),
       };
 
@@ -278,7 +323,9 @@ const ComprehensiveUserManager = ({ language }: ComprehensiveUserManagerProps) =
           address: "",
           emergencyContact: "",
           childrenCount: "1",
+          parentVanId: "",
         });
+        setStudents([{ fullName: "", grade: "", pickupStop: "", medicalInfo: "" }]);
 
         fetchUsers();
 
@@ -524,15 +571,110 @@ const ComprehensiveUserManager = ({ language }: ComprehensiveUserManagerProps) =
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="childrenCount">{t.childrenCount}</Label>
-                      <Input
-                        id="childrenCount"
-                        type="number"
-                        value={formData.childrenCount}
-                        onChange={(e) => setFormData({ ...formData, childrenCount: e.target.value })}
-                        placeholder="1"
-                      />
+                      <Label htmlFor="parentVanId">{t.van}</Label>
+                      <Select
+                        value={formData.parentVanId}
+                        onValueChange={(value) => setFormData({ ...formData, parentVanId: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={t.selectVan} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableVans.map((van) => (
+                            <SelectItem key={van.id} value={van.id}>
+                              {van.van_number} - {van.route_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+                  </div>
+
+                  {/* Student Details Section */}
+                  <div className="space-y-3 mt-4 p-4 border rounded-lg bg-muted/30">
+                    <Label className="text-base font-semibold">{t.studentDetails}</Label>
+                    {students.map((student, index) => (
+                      <div key={index} className="space-y-3 p-3 border rounded bg-background">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Student {index + 1}</span>
+                          {students.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setStudents(students.filter((_, i) => i !== index))}
+                              className="text-destructive"
+                            >
+                              {t.removeStudent}
+                            </Button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="space-y-2">
+                            <Label htmlFor={`student-name-${index}`}>{t.studentName}</Label>
+                            <Input
+                              id={`student-name-${index}`}
+                              value={student.fullName}
+                              onChange={(e) => {
+                                const newStudents = [...students];
+                                newStudents[index].fullName = e.target.value;
+                                setStudents(newStudents);
+                              }}
+                              placeholder="Student Full Name"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`student-grade-${index}`}>{t.grade}</Label>
+                            <Input
+                              id={`student-grade-${index}`}
+                              value={student.grade}
+                              onChange={(e) => {
+                                const newStudents = [...students];
+                                newStudents[index].grade = e.target.value;
+                                setStudents(newStudents);
+                              }}
+                              placeholder="e.g., 5th Grade"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`student-pickup-${index}`}>{t.pickupStop}</Label>
+                            <Input
+                              id={`student-pickup-${index}`}
+                              value={student.pickupStop}
+                              onChange={(e) => {
+                                const newStudents = [...students];
+                                newStudents[index].pickupStop = e.target.value;
+                                setStudents(newStudents);
+                              }}
+                              placeholder="Pickup Location"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`student-medical-${index}`}>{t.medicalInfo}</Label>
+                            <Input
+                              id={`student-medical-${index}`}
+                              value={student.medicalInfo}
+                              onChange={(e) => {
+                                const newStudents = [...students];
+                                newStudents[index].medicalInfo = e.target.value;
+                                setStudents(newStudents);
+                              }}
+                              placeholder="Any medical conditions"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setStudents([...students, { fullName: "", grade: "", pickupStop: "", medicalInfo: "" }])}
+                      className="w-full"
+                    >
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      {t.addStudent}
+                    </Button>
                   </div>
                 </div>
               )}
