@@ -41,7 +41,7 @@ const ComprehensiveUserManager = ({ language }: ComprehensiveUserManagerProps) =
 
   // Form state
   const [formData, setFormData] = useState({
-    role: "admin",
+    role: "parent",
     fullName: "",
     email: "",
     phone: "",
@@ -243,7 +243,7 @@ const ComprehensiveUserManager = ({ language }: ComprehensiveUserManagerProps) =
 
         // Reset form
         setFormData({
-          role: "admin",
+          role: "parent",
           fullName: "",
           email: "",
           phone: "",
@@ -360,7 +360,6 @@ const ComprehensiveUserManager = ({ language }: ComprehensiveUserManagerProps) =
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">{t.admin}</SelectItem>
                     <SelectItem value="parent">{t.parent}</SelectItem>
                     <SelectItem value="driver">{t.driver}</SelectItem>
                   </SelectContent>
