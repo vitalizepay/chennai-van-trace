@@ -3,12 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog, LogOut, Shield, TrendingUp, Clock, MapPin as LocationIcon } from "lucide-react";
+import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog, LogOut, Shield, TrendingUp, Clock, MapPin as LocationIcon, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import EnhancedGoogleMap from "./EnhancedGoogleMap";
 import ComprehensiveUserManager from "./ComprehensiveUserManager";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface AdminDashboardProps {
   language: "en" | "ta";
@@ -67,6 +70,14 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
     { id: "2", type: "delay", message: "Route running 15 minutes late", time: "8 mins ago", van: "Route Van" },
     { id: "3", type: "maintenance", message: "Scheduled maintenance due", time: "1 hour ago", van: "Maintenance Van" },
   ]);
+  const [isCreateVanOpen, setIsCreateVanOpen] = useState(false);
+  const [newVan, setNewVan] = useState({
+    van_number: "",
+    route_name: "",
+    capacity: "30",
+    current_lat: "11.0168",
+    current_lng: "76.9558"
+  });
 
   const texts = {
     en: {
@@ -255,6 +266,68 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
     });
   };
 
+  const handleCreateVan = async () => {
+    if (!schoolData) {
+      toast({
+        title: "Error",
+        description: "No school assigned",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!newVan.van_number || !newVan.route_name) {
+      toast({
+        title: "Error",
+        description: "Van number and route name are required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('vans')
+        .insert({
+          van_number: newVan.van_number,
+          route_name: newVan.route_name,
+          capacity: parseInt(newVan.capacity),
+          current_lat: parseFloat(newVan.current_lat),
+          current_lng: parseFloat(newVan.current_lng),
+          school_id: schoolData.id,
+          status: 'active',
+          current_students: 0
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Van created successfully",
+        className: "bg-success text-success-foreground"
+      });
+
+      setIsCreateVanOpen(false);
+      setNewVan({
+        van_number: "",
+        route_name: "",
+        capacity: "30",
+        current_lat: "11.0168",
+        current_lng: "76.9558"
+      });
+
+      // Refresh van data
+      fetchSchoolData();
+    } catch (error: any) {
+      console.error('Error creating van:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create van",
+        variant: "destructive"
+      });
+    }
+  };
+
   const activeVansCount = vans.filter(van => van.status === "active").length;
   const totalStudents = vans.reduce((sum, van) => sum + (van.current_students || 0), 0);
   const activeRoutes = new Set(vans.filter(van => van.status === "active" && van.route_name).map(van => van.route_name)).size;
@@ -374,12 +447,86 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
           <TabsContent value="vans" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">{t.vanManagement}</CardTitle>
-                {schoolData && (
-                  <p className="text-sm text-muted-foreground">
-                    Managing {vans.length} vans for {schoolData.name}
-                  </p>
-                )}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base">{t.vanManagement}</CardTitle>
+                    {schoolData && (
+                      <p className="text-sm text-muted-foreground">
+                        Managing {vans.length} vans for {schoolData.name}
+                      </p>
+                    )}
+                  </div>
+                  <Dialog open={isCreateVanOpen} onOpenChange={setIsCreateVanOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="gap-2">
+                        <Plus className="h-4 w-4" />
+                        Add Van
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create New Van</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="van_number">Van Number *</Label>
+                          <Input 
+                            id="van_number"
+                            placeholder="VAN-001"
+                            value={newVan.van_number}
+                            onChange={(e) => setNewVan({...newVan, van_number: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="route_name">Route Name *</Label>
+                          <Input 
+                            id="route_name"
+                            placeholder="Route A"
+                            value={newVan.route_name}
+                            onChange={(e) => setNewVan({...newVan, route_name: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="capacity">Capacity</Label>
+                          <Input 
+                            id="capacity"
+                            type="number"
+                            placeholder="30"
+                            value={newVan.capacity}
+                            onChange={(e) => setNewVan({...newVan, capacity: e.target.value})}
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label htmlFor="current_lat">Latitude</Label>
+                            <Input 
+                              id="current_lat"
+                              type="number"
+                              step="0.000001"
+                              placeholder="11.0168"
+                              value={newVan.current_lat}
+                              onChange={(e) => setNewVan({...newVan, current_lat: e.target.value})}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="current_lng">Longitude</Label>
+                            <Input 
+                              id="current_lng"
+                              type="number"
+                              step="0.000001"
+                              placeholder="76.9558"
+                              value={newVan.current_lng}
+                              onChange={(e) => setNewVan({...newVan, current_lng: e.target.value})}
+                            />
+                          </div>
+                        </div>
+                        <Button onClick={handleCreateVan} className="w-full">
+                          Create Van
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 {loading ? (
