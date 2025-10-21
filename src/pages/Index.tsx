@@ -10,7 +10,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import ParentDashboard from "@/components/ParentDashboard";
 import DriverDashboard from "@/components/DriverDashboard";
 import AdminDashboard from "@/components/AdminDashboard";
-import SuperAdminDashboard from "@/components/SuperAdminDashboard";
 import ForcePasswordChange from "@/components/auth/ForcePasswordChange";
 
 type UserRole = "parent" | "driver" | "admin" | "super_admin" | null;
@@ -54,7 +53,6 @@ const Index = () => {
         {userRole === "parent" && <ParentDashboard language={language} onBack={() => navigate('/')} />}
         {userRole === "driver" && <DriverDashboard language={language} onBack={() => navigate('/')} />}
         {userRole === "admin" && <AdminDashboard language={language} onBack={() => navigate('/')} />}
-        {userRole === "super_admin" && <SuperAdminDashboard language={language} onBack={() => navigate('/')} />}
       </div>
     );
   }
