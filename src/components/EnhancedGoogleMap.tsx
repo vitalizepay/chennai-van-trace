@@ -108,27 +108,30 @@ const EnhancedGoogleMap = ({
     
     return {
       url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="80" height="60" viewBox="0 0 80 60" fill="none" xmlns="http://www.w3.org/2000/svg">
           <!-- Shadow -->
-          <ellipse cx="22" cy="40" rx="16" ry="3" fill="black" opacity="0.2"/>
+          <ellipse cx="40" cy="40" rx="16" ry="3" fill="black" opacity="0.2"/>
           <!-- Van body -->
-          <rect x="8" y="16" width="28" height="16" rx="3" fill="${fillColor}" stroke="${strokeColor}" stroke-width="2"/>
+          <rect x="26" y="16" width="28" height="16" rx="3" fill="${fillColor}" stroke="${strokeColor}" stroke-width="2"/>
           <!-- Van front -->
-          <rect x="8" y="18" width="4" height="10" rx="2" fill="${strokeColor}"/>
+          <rect x="26" y="18" width="4" height="10" rx="2" fill="${strokeColor}"/>
           <!-- Windows -->
-          <rect x="14" y="19" width="6" height="4" rx="1" fill="white" opacity="0.9"/>
-          <rect x="22" y="19" width="6" height="4" rx="1" fill="white" opacity="0.9"/>
-          <rect x="30" y="19" width="4" height="4" rx="1" fill="white" opacity="0.9"/>
+          <rect x="32" y="19" width="6" height="4" rx="1" fill="white" opacity="0.9"/>
+          <rect x="40" y="19" width="6" height="4" rx="1" fill="white" opacity="0.9"/>
+          <rect x="48" y="19" width="4" height="4" rx="1" fill="white" opacity="0.9"/>
           <!-- Wheels -->
-          <circle cx="14" cy="32" r="3" fill="#333" stroke="white" stroke-width="1"/>
-          <circle cx="30" cy="32" r="3" fill="#333" stroke="white" stroke-width="1"/>
+          <circle cx="32" cy="32" r="3" fill="#333" stroke="white" stroke-width="1"/>
+          <circle cx="48" cy="32" r="3" fill="#333" stroke="white" stroke-width="1"/>
           <!-- Student count badge -->
-          <circle cx="32" cy="12" r="6" fill="#DC2626" stroke="white" stroke-width="2"/>
-          <text x="32" y="16" text-anchor="middle" fill="white" font-size="8" font-weight="bold">${van.current_students}</text>
+          <circle cx="50" cy="12" r="6" fill="#DC2626" stroke="white" stroke-width="2"/>
+          <text x="50" y="16" text-anchor="middle" fill="white" font-size="8" font-weight="bold">${van.current_students}</text>
+          <!-- Van Number Label (below van) -->
+          <rect x="20" y="44" width="40" height="14" rx="3" fill="white" stroke="${strokeColor}" stroke-width="1.5"/>
+          <text x="40" y="53" text-anchor="middle" fill="#1F2937" font-size="10" font-weight="bold" font-family="Arial, sans-serif">${van.van_number}</text>
         </svg>
       `),
-      scaledSize: new google.maps.Size(44, 44),
-      anchor: new google.maps.Point(22, 32)
+      scaledSize: new google.maps.Size(80, 60),
+      anchor: new google.maps.Point(40, 44)
     };
   };
 
