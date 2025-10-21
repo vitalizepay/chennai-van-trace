@@ -345,7 +345,7 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-2">
-            <EnhancedGoogleMap height="h-[50vh]" />
+            <EnhancedGoogleMap height="h-[50vh]" parentId={user?.id} />
           </CardContent>
         </Card>
 

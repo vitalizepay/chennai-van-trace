@@ -22,13 +22,15 @@ interface EnhancedGoogleMapProps {
   className?: string;
   showAllVans?: boolean; // For super admin to show all school vans
   schoolId?: string; // For regular admin to show only their school vans
+  parentId?: string; // For parent to show only their children's van(s)
 }
 
 const EnhancedGoogleMap = ({ 
   height = "h-40", 
   className = "", 
   showAllVans = false,
-  schoolId 
+  schoolId,
+  parentId
 }: EnhancedGoogleMapProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -57,6 +59,53 @@ const EnhancedGoogleMap = ({
 
   const fetchVans = async () => {
     try {
+      // If parentId is provided, fetch only vans assigned to parent's children
+      if (parentId) {
+        const { data: studentVans, error: studentError } = await supabase
+          .from('students')
+          .select(`
+            van_id,
+            vans!inner(
+              id,
+              van_number,
+              route_name,
+              current_lat,
+              current_lng,
+              current_students,
+              capacity,
+              status,
+              schools!inner(name)
+            )
+          `)
+          .eq('parent_id', parentId)
+          .eq('status', 'active')
+          .not('van_id', 'is', null);
+
+        if (studentError) throw studentError;
+
+        // Extract unique vans (in case multiple children on same van)
+        const uniqueVans = new Map();
+        (studentVans || []).forEach((student: any) => {
+          if (student.vans && student.vans.current_lat && student.vans.current_lng && student.vans.status === 'active') {
+            uniqueVans.set(student.vans.id, {
+              id: student.vans.id,
+              van_number: student.vans.van_number,
+              school_name: student.vans.schools.name,
+              route_name: student.vans.route_name,
+              current_lat: student.vans.current_lat,
+              current_lng: student.vans.current_lng,
+              current_students: student.vans.current_students,
+              capacity: student.vans.capacity,
+              status: student.vans.status
+            });
+          }
+        });
+
+        setVans(Array.from(uniqueVans.values()));
+        return;
+      }
+
+      // Otherwise fetch vans normally (for admin/super admin)
       let query = supabase
         .from('vans')
         .select(`
@@ -360,7 +409,7 @@ const EnhancedGoogleMap = ({
     };
 
     loadMap();
-  }, [schoolId, showAllVans]);
+  }, [schoolId, showAllVans, parentId]);
 
   useEffect(() => {
     if (map && vans.length > 0) {
@@ -374,7 +423,7 @@ const EnhancedGoogleMap = ({
       const interval = setInterval(fetchVans, 30000);
       return () => clearInterval(interval);
     }
-  }, [isLoading, schoolId, showAllVans]);
+  }, [isLoading, schoolId, showAllVans, parentId]);
 
   if (error) {
     return (
