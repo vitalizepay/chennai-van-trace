@@ -360,6 +360,7 @@ const ComprehensiveUserManager = ({ language }: ComprehensiveUserManagerProps) =
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="admin">{t.admin}</SelectItem>
                     <SelectItem value="parent">{t.parent}</SelectItem>
                     <SelectItem value="driver">{t.driver}</SelectItem>
                   </SelectContent>
