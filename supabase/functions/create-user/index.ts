@@ -335,6 +335,24 @@ serve(async (req) => {
     const actionMessage = isExistingUser ? 'updated' : 'created'
     console.log(`User ${actionMessage} successfully:`, authData.user.id)
 
+    // Log password set activity for temp password tracking
+    const { error: activityLogError } = await supabaseAdmin
+      .from('user_activity_logs')
+      .insert({
+        user_id: authData.user.id,
+        action: 'password_set_by_admin',
+        details: {
+          set_by: userData.createdBy,
+          timestamp: new Date().toISOString(),
+          is_temporary: true
+        }
+      })
+
+    if (activityLogError) {
+      console.error('Error logging password set activity:', activityLogError)
+      // Don't fail the whole operation if logging fails
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
