@@ -7,7 +7,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Play, Square, Users, MapPin, UserCheck, UserX, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import SOSButton from "@/components/SOSButton";
-import EnhancedGoogleMap from "@/components/EnhancedGoogleMap";
 import { toast } from "@/hooks/use-toast";
 
 interface DriverDashboardProps {
@@ -330,20 +329,6 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
                 )}
               </Button>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Live Tracking Map - Half Screen */}
-        <Card className="border-2 border-driver/20">
-          <CardHeader className="pb-2 bg-driver/5">
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <MapPin className="h-6 w-6 text-driver animate-pulse" />
-              Live Location Tracking
-              {tripActive && <Badge className="ml-auto bg-success text-success-foreground">Active</Badge>}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-2">
-            <EnhancedGoogleMap height="h-[50vh]" />
           </CardContent>
         </Card>
 
