@@ -31,6 +31,16 @@ serve(async (req) => {
 
     console.log(`Deleting user: ${userId}`)
 
+    // Log the activity BEFORE deletion (while user still exists)
+    await supabaseAdmin.from('user_activity_logs').insert({
+      user_id: userId,
+      action: 'user_deleted_by_admin',
+      details: { 
+        deleted_at: new Date().toISOString(),
+        deleted_by: 'admin'
+      }
+    })
+
     // Delete user from Supabase Auth using admin client
     const { data, error } = await supabaseAdmin.auth.admin.deleteUser(userId)
 
@@ -40,16 +50,6 @@ serve(async (req) => {
     }
 
     console.log('User deleted successfully:', userId)
-
-    // Log the activity
-    await supabaseAdmin.from('user_activity_logs').insert({
-      user_id: userId,
-      action: 'user_deleted_by_admin',
-      details: { 
-        deleted_at: new Date().toISOString(),
-        deleted_by: 'admin'
-      }
-    })
 
     return new Response(
       JSON.stringify({ 
