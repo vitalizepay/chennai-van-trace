@@ -123,21 +123,75 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
     fetchDriverData();
   }, [user?.id]);
 
+  // Request location permission explicitly first
+  useEffect(() => {
+    const requestLocationPermission = async () => {
+      try {
+        console.log('🔐 Requesting location permission...');
+        console.log('Device info:', {
+          userAgent: navigator.userAgent,
+          platform: navigator.platform,
+          isSecureContext: window.isSecureContext,
+          protocol: window.location.protocol
+        });
+
+        // Request permission explicitly
+        const result = await navigator.permissions.query({ name: 'geolocation' });
+        console.log('Permission status:', result.state);
+
+        if (result.state === 'denied') {
+          setGpsStatus('permission-denied');
+          toast({
+            title: "Location Permission Denied",
+            description: "Please enable location in your device settings and browser",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        // Try to get location once to trigger permission prompt
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            console.log('✅ Initial location obtained:', position.coords);
+            toast({
+              title: "GPS Ready",
+              description: "Location tracking enabled successfully",
+              className: "bg-success text-success-foreground"
+            });
+          },
+          (error) => {
+            console.error('❌ Initial location error:', error);
+            toast({
+              title: "Location Error",
+              description: `Error code ${error.code}: ${error.message}`,
+              variant: "destructive"
+            });
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      } catch (error) {
+        console.error('Permission check error:', error);
+      }
+    };
+
+    requestLocationPermission();
+  }, []);
+
   // Location tracking with watchPosition for continuous GPS
   useEffect(() => {
-    console.log('Location tracking effect triggered:', { tripActive, vanId });
+    console.log('📍 Location tracking effect triggered:', { tripActive, vanId });
     
     if (!vanId) {
-      console.log('No van assigned, cannot track location');
+      console.log('⚠️ No van assigned, cannot track location');
       return;
     }
 
     if (!navigator.geolocation) {
-      console.error('Geolocation is not supported by this browser');
+      console.error('❌ Geolocation is not supported by this browser');
       setGpsStatus('unavailable');
       toast({
         title: "GPS Not Available",
-        description: "Your device doesn't support GPS tracking. Please use a mobile device.",
+        description: "Your device doesn't support GPS tracking",
         variant: "destructive"
       });
       return;
@@ -147,26 +201,45 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
 
     const startWatching = () => {
       console.log('🚐 Starting continuous GPS tracking for van:', vanId);
+      console.log('📱 Device details:', {
+        userAgent: navigator.userAgent,
+        isMobile: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent),
+        hasGeolocation: !!navigator.geolocation,
+        protocol: window.location.protocol,
+        isSecure: window.isSecureContext
+      });
       
       watchId = navigator.geolocation.watchPosition(
         async (position) => {
-          const { latitude, longitude, accuracy } = position.coords;
+          const { latitude, longitude, accuracy, altitude, heading, speed } = position.coords;
           const now = new Date();
           
-          console.log('📍 Location obtained:', { 
-            latitude, 
-            longitude, 
-            accuracy: Math.round(accuracy) + 'm',
+          console.log('📍 GPS LOCATION RECEIVED:', { 
+            latitude: latitude.toFixed(6),
+            longitude: longitude.toFixed(6),
+            accuracy: Math.round(accuracy) + ' meters',
+            altitude: altitude ? Math.round(altitude) + ' m' : 'N/A',
+            heading: heading ? Math.round(heading) + '°' : 'N/A',
+            speed: speed ? (speed * 3.6).toFixed(1) + ' km/h' : 'N/A',
             timestamp: now.toISOString(),
-            isMobile: /Mobi|Android/i.test(navigator.userAgent),
             tripActive
           });
           
           setGpsStatus('active');
           setLastLocationUpdate(now);
           
+          // Show success toast only on first successful location
+          if (gpsStatus !== 'active') {
+            toast({
+              title: "GPS Active",
+              description: `Accuracy: ${Math.round(accuracy)}m`,
+              className: "bg-success text-success-foreground"
+            });
+          }
+          
           try {
-            const { error } = await supabase
+            console.log('💾 Updating database with location...');
+            const { error, data } = await supabase
               .from('vans')
               .update({
                 current_lat: latitude,
@@ -174,59 +247,63 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
                 last_location_update: now.toISOString(),
                 status: 'active'
               })
-              .eq('id', vanId);
+              .eq('id', vanId)
+              .select();
               
             if (error) {
               console.error('❌ Database update error:', error);
               toast({
-                title: "Location Update Failed",
-                description: "Could not update van location in database",
+                title: "Database Error",
+                description: error.message,
                 variant: "destructive"
               });
             } else {
-              console.log('✅ Location updated successfully:', {
-                vanId,
-                lat: latitude.toFixed(6),
-                lng: longitude.toFixed(6),
-                accuracy: Math.round(accuracy) + 'm'
-              });
+              console.log('✅ Database updated successfully:', data);
             }
           } catch (dbError) {
-            console.error('❌ Database operation failed:', dbError);
+            console.error('❌ Database operation exception:', dbError);
           }
         },
         (error) => {
-          console.error('❌ Geolocation error:', {
+          console.error('❌ GEOLOCATION ERROR:', {
             code: error.code,
             message: error.message,
-            isMobile: /Mobi|Android/i.test(navigator.userAgent),
-            details: {
-              1: 'PERMISSION_DENIED - User denied location access',
-              2: 'POSITION_UNAVAILABLE - Location information unavailable', 
-              3: 'TIMEOUT - Location request timed out'
-            }[error.code] || 'Unknown error'
+            PERMISSION_DENIED: error.code === 1,
+            POSITION_UNAVAILABLE: error.code === 2,
+            TIMEOUT: error.code === 3,
+            timestamp: new Date().toISOString()
           });
           
-          if (error.code === 1) {
-            setGpsStatus('permission-denied');
-            toast({
-              title: "Location Permission Denied",
-              description: "Please enable location access in your browser settings to track the van",
-              variant: "destructive"
-            });
-          } else if (error.code === 2) {
-            setGpsStatus('unavailable');
-            toast({
-              title: "GPS Signal Lost",
-              description: "Unable to determine location. Please check if GPS is enabled on your device.",
-              variant: "destructive"
-            });
+          let errorTitle = "GPS Error";
+          let errorDescription = "Unknown error";
+          
+          switch (error.code) {
+            case 1: // PERMISSION_DENIED
+              setGpsStatus('permission-denied');
+              errorTitle = "Permission Denied";
+              errorDescription = "Go to Settings → Privacy → Location Services and enable location for your browser";
+              break;
+            case 2: // POSITION_UNAVAILABLE
+              setGpsStatus('unavailable');
+              errorTitle = "GPS Unavailable";
+              errorDescription = "Make sure GPS is enabled and you're outdoors with clear sky view";
+              break;
+            case 3: // TIMEOUT
+              errorTitle = "GPS Timeout";
+              errorDescription = "Location request timed out. Move to an area with better GPS signal";
+              break;
           }
+          
+          toast({
+            title: errorTitle,
+            description: errorDescription,
+            variant: "destructive"
+          });
         },
         {
           enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0 // Always get fresh position
+          timeout: 20000,
+          maximumAge: 0
         }
       );
     };
