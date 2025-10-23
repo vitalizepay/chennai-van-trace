@@ -3,13 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog, LogOut, Shield, TrendingUp, Clock, MapPin as LocationIcon, Plus, UserCircle } from "lucide-react";
+import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog, LogOut, Shield, TrendingUp, Clock, MapPin as LocationIcon, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import EnhancedGoogleMap from "./EnhancedGoogleMap";
 import ComprehensiveUserManager from "./ComprehensiveUserManager";
-import StudentParentManager from "./StudentParentManager";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -507,18 +506,18 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
 
       <div className="p-4">
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview" className="gap-2">
               <BarChart3 className="h-4 w-4" />
-              {t.overview}
+              Dashboard
             </TabsTrigger>
             <TabsTrigger value="vans" className="gap-2">
               <Bus className="h-4 w-4" />
-              Vans
+              Vehicles
             </TabsTrigger>
-            <TabsTrigger value="students" className="gap-2">
-              <UserCircle className="h-4 w-4" />
-              Students
+            <TabsTrigger value="tracking" className="gap-2">
+              <MapPin className="h-4 w-4" />
+              Tracking
             </TabsTrigger>
             <TabsTrigger value="users" className="gap-2">
               <UserCog className="h-4 w-4" />
@@ -526,78 +525,151 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
             </TabsTrigger>
             <TabsTrigger value="alerts" className="gap-2">
               <AlertTriangle className="h-4 w-4" />
-              {t.alerts}
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              {t.reports}
+              Alerts
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-success">{activeVansCount}</div>
-                    <p className="text-sm text-muted-foreground">{t.activeVans}</p>
-                  </div>
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
+                <p className="text-sm text-muted-foreground mt-3">Loading dashboard...</p>
+              </div>
+            ) : !schoolData ? (
+              <Card className="border-warning bg-warning/5">
+                <CardContent className="pt-6 text-center">
+                  <Shield className="h-12 w-12 mx-auto mb-3 text-warning" />
+                  <p className="font-medium mb-1">{t.schoolNotAssigned}</p>
+                  <p className="text-sm text-muted-foreground">Contact super admin for school assignment</p>
                 </CardContent>
               </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">{totalStudents}</div>
-                    <p className="text-sm text-muted-foreground">{t.totalStudents}</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-secondary">{activeRoutes}</div>
-                    <p className="text-sm text-muted-foreground">{t.activeRoutes}</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-emergency">{alerts.length}</div>
-                    <p className="text-sm text-muted-foreground">{t.pendingAlerts}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            ) : (
+              <>
+                {/* Modern Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card className="border-0 bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-1">Total Students</p>
+                          <p className="text-3xl font-bold text-amber-900 dark:text-amber-100">{totalStudents}</p>
+                        </div>
+                        <div className="w-12 h-12 rounded-full bg-amber-500 flex items-center justify-center">
+                          <Users className="h-6 w-6 text-white" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button className="w-full gap-2" onClick={handleSendNotification}>
-                  <Bell className="h-4 w-4" />
-                  {t.sendNotification}
-                </Button>
+                  <Card className="border-0 bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-1">Active Drivers</p>
+                          <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">{availableDrivers.length || 0}</p>
+                        </div>
+                        <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center">
+                          <UserCog className="h-6 w-6 text-white" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-0 bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/30 dark:to-emerald-900/20">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400 mb-1">Active Vans</p>
+                          <p className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">{activeVansCount}</p>
+                        </div>
+                        <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center">
+                          <Bus className="h-6 w-6 text-white" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Recent Activity */}
                 <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      Live Van Tracking Map
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Clock className="h-5 w-5" />
+                      Recent Activity
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <EnhancedGoogleMap 
-                      height="h-48" 
-                      className="rounded-lg" 
-                      showAllVans={true}
-                    />
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                      <div className="w-2 h-2 rounded-full bg-success"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">System running normally</p>
+                        <p className="text-xs text-muted-foreground">{activeVansCount} vehicles active</p>
+                      </div>
+                      <span className="text-xs text-muted-foreground">Just now</span>
+                    </div>
                   </CardContent>
                 </Card>
-              </CardContent>
-            </Card>
+
+                {/* Quick Actions */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Quick Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 gap-3">
+                    <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={handleSendNotification}>
+                      <Bell className="h-5 w-5" />
+                      <span className="text-xs">Send Notification</span>
+                    </Button>
+                    <Dialog open={isCreateVanOpen} onOpenChange={setIsCreateVanOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" className="h-auto py-4 flex-col gap-2">
+                          <Plus className="h-5 w-5" />
+                          <span className="text-xs">Add Vehicle</span>
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Create New Van</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="van_number">Van Number *</Label>
+                            <Input 
+                              id="van_number"
+                              placeholder="VAN-001"
+                              value={newVan.van_number}
+                              onChange={(e) => setNewVan({...newVan, van_number: e.target.value})}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="route_name">Route Name *</Label>
+                            <Input 
+                              id="route_name"
+                              placeholder="Route A"
+                              value={newVan.route_name}
+                              onChange={(e) => setNewVan({...newVan, route_name: e.target.value})}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="capacity">Capacity</Label>
+                            <Input 
+                              id="capacity"
+                              type="number"
+                              placeholder="30"
+                              value={newVan.capacity}
+                              onChange={(e) => setNewVan({...newVan, capacity: e.target.value})}
+                            />
+                          </div>
+                          <Button onClick={handleCreateVan} className="w-full">
+                            Create Van
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </TabsContent>
 
           <TabsContent value="vans" className="space-y-4">
@@ -605,137 +677,83 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-base">{t.vanManagement}</CardTitle>
+                    <CardTitle className="text-lg">Vehicle List</CardTitle>
                     {schoolData && (
                       <p className="text-sm text-muted-foreground">
-                        Managing {vans.length} vans for {schoolData.name}
+                        Managing {vans.length} vehicles
                       </p>
                     )}
                   </div>
-                  <Dialog open={isCreateVanOpen} onOpenChange={setIsCreateVanOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Add Van
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Create New Van</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="van_number">Van Number *</Label>
-                          <Input 
-                            id="van_number"
-                            placeholder="VAN-001"
-                            value={newVan.van_number}
-                            onChange={(e) => setNewVan({...newVan, van_number: e.target.value})}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="route_name">Route Name *</Label>
-                          <Input 
-                            id="route_name"
-                            placeholder="Route A"
-                            value={newVan.route_name}
-                            onChange={(e) => setNewVan({...newVan, route_name: e.target.value})}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="capacity">Capacity</Label>
-                          <Input 
-                            id="capacity"
-                            type="number"
-                            placeholder="30"
-                            value={newVan.capacity}
-                            onChange={(e) => setNewVan({...newVan, capacity: e.target.value})}
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <Label htmlFor="current_lat">Latitude</Label>
-                            <Input 
-                              id="current_lat"
-                              type="number"
-                              step="0.000001"
-                              placeholder="11.0168"
-                              value={newVan.current_lat}
-                              onChange={(e) => setNewVan({...newVan, current_lat: e.target.value})}
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="current_lng">Longitude</Label>
-                            <Input 
-                              id="current_lng"
-                              type="number"
-                              step="0.000001"
-                              placeholder="76.9558"
-                              value={newVan.current_lng}
-                              onChange={(e) => setNewVan({...newVan, current_lng: e.target.value})}
-                            />
-                          </div>
-                        </div>
-                        <Button onClick={handleCreateVan} className="w-full">
-                          Create Van
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                  <Button size="sm" className="gap-2" onClick={() => setIsCreateVanOpen(true)}>
+                    <Plus className="h-4 w-4" />
+                    Add
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 {loading ? (
-                  <div className="text-center py-4">
+                  <div className="text-center py-8">
                     <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
-                    <p className="text-sm text-muted-foreground mt-2">Loading vans...</p>
+                    <p className="text-sm text-muted-foreground mt-2">Loading vehicles...</p>
                   </div>
                 ) : !schoolData ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Shield className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">{t.schoolNotAssigned}</p>
-                    <p className="text-xs">Please contact super admin to assign you to a school</p>
+                  <div className="text-center py-8">
+                    <Shield className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
+                    <p className="text-sm text-muted-foreground">{t.schoolNotAssigned}</p>
                   </div>
                 ) : vans.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Bus className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">{t.noVansAssigned}</p>
+                  <div className="text-center py-8">
+                    <Bus className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
+                    <p className="text-sm text-muted-foreground">{t.noVansAssigned}</p>
                   </div>
                 ) : (
                   vans.map((van) => (
-                    <div key={van.id} className="flex items-center justify-between p-3 bg-accent rounded-lg">
-                      <div className="flex-1">
-                        <p className="font-medium">{van.van_number}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {van.route_name || "No route assigned"} • Capacity: {van.capacity}
-                        </p>
-                        {van.driver_id && (
-                          <p className="text-xs text-primary mt-1">Driver assigned</p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Badge className={`bg-${getStatusColor(van.status)} text-${getStatusColor(van.status)}-foreground`}>
-                          {t[van.status as keyof typeof t] || van.status}
-                        </Badge>
-                        <span className="text-sm font-medium">{van.current_students}/{van.capacity} students</span>
-                        <Button 
-                          variant="secondary" 
-                          size="sm"
-                          onClick={() => handleManageDriver(van)}
-                          className="gap-2"
-                        >
-                          <UserCog className="h-4 w-4" />
-                          Manage Driver
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleViewVanDetails(van)}
-                        >
-                          {t.viewDetails}
-                        </Button>
-                      </div>
-                    </div>
+                    <Card key={van.id} className="border-l-4 border-l-primary">
+                      <CardContent className="pt-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-semibold text-base">{van.van_number}</h4>
+                              <Badge variant={van.status === 'active' ? 'default' : 'secondary'}>
+                                {van.status}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {van.route_name || "No route assigned"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                          <div className="bg-muted/50 rounded-lg p-2">
+                            <p className="text-xs text-muted-foreground mb-1">Occupancy</p>
+                            <p className="text-sm font-semibold">{van.current_students}/{van.capacity}</p>
+                          </div>
+                          <div className="bg-muted/50 rounded-lg p-2">
+                            <p className="text-xs text-muted-foreground mb-1">Driver</p>
+                            <p className="text-sm font-semibold">{van.driver_id ? 'Assigned' : 'Not assigned'}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleManageDriver(van)}
+                            className="flex-1"
+                          >
+                            <UserCog className="h-3 w-3 mr-1" />
+                            Manage
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleViewVanDetails(van)}
+                            className="flex-1"
+                          >
+                            Details
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
                   ))
                 )}
               </CardContent>
@@ -807,8 +825,25 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
             </Dialog>
           </TabsContent>
 
-          <TabsContent value="students" className="space-y-4">
-            <StudentParentManager />
+          <TabsContent value="tracking" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Live Tracking
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Real-time location of all vehicles
+                </p>
+              </CardHeader>
+              <CardContent>
+                <EnhancedGoogleMap 
+                  height="h-[500px]" 
+                  className="rounded-lg" 
+                  showAllVans={true}
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="users" className="space-y-4">
