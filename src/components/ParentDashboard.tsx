@@ -91,10 +91,29 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
         }
 
         if (students && students.length > 0) {
-          setStudentData(students);
+          // Geocode pickup locations immediately if not already stored
+          const studentsWithCoords = await Promise.all(
+            students.map(async (student) => {
+              if (!student.pickup_lat || !student.pickup_lng) {
+                const coords = await geocodeAddress(student.pickup_stop + ', Coimbatore, Tamil Nadu');
+                if (coords) {
+                  // Update database with geocoded coordinates
+                  await supabase
+                    .from('students')
+                    .update({ pickup_lat: coords.lat, pickup_lng: coords.lng })
+                    .eq('id', student.id);
+                  
+                  return { ...student, pickup_lat: coords.lat, pickup_lng: coords.lng };
+                }
+              }
+              return student;
+            })
+          );
           
-          if (students[0].vans) {
-            setVanData(students[0].vans);
+          setStudentData(studentsWithCoords);
+          
+          if (studentsWithCoords[0].vans) {
+            setVanData(studentsWithCoords[0].vans);
           }
         } else {
           setStudentData([]);
@@ -296,35 +315,13 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
 
         if (error || !vanUpdates) return;
 
-        // Build pickup points with geocoded coordinates
-        const studentPickupPoints = await Promise.all(
-          studentData.map(async (student) => {
-            let lat = student.pickup_lat;
-            let lng = student.pickup_lng;
-            
-            // If coordinates not stored, geocode the address
-            if (!lat || !lng) {
-              const coords = await geocodeAddress(student.pickup_stop + ', Coimbatore');
-              if (coords) {
-                lat = coords.lat;
-                lng = coords.lng;
-                
-                // Update student record with coordinates
-                await supabase
-                  .from('students')
-                  .update({ pickup_lat: lat, pickup_lng: lng })
-                  .eq('id', student.id);
-              }
-            }
-            
-            return {
-              name: student.full_name,
-              pickupStop: student.pickup_stop,
-              lat: lat || 11.0168,
-              lng: lng || 76.9558
-            };
-          })
-        );
+        // Build pickup points using stored coordinates
+        const studentPickupPoints = studentData.map((student) => ({
+          name: student.full_name,
+          pickupStop: student.pickup_stop,
+          lat: student.pickup_lat || 11.0168,
+          lng: student.pickup_lng || 76.9558
+        }));
 
         // Geocode parent address for school location if available
         let schoolLocation = { lat: 11.0168, lng: 76.9558 }; // Default Coimbatore
@@ -340,6 +337,9 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
             lat: Number(vanUpdates.current_lat), 
             lng: Number(vanUpdates.current_lng) 
           };
+          
+          console.log('Van Location:', vanLocation);
+          console.log('Pickup Points:', studentPickupPoints);
           
           const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
             const R = 6371;
@@ -357,6 +357,7 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
           
           for (const pickup of studentPickupPoints) {
             const distance = calculateDistance(vanLocation.lat, vanLocation.lng, pickup.lat, pickup.lng);
+            console.log(`Distance to ${pickup.pickupStop}: ${distance.toFixed(2)}km`);
             if (distance < minDistanceToPickup) {
               minDistanceToPickup = distance;
               nearestStudent = pickup;
@@ -364,10 +365,13 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
           }
           
           const distanceToSchool = calculateDistance(vanLocation.lat, vanLocation.lng, schoolLocation.lat, schoolLocation.lng);
+          console.log(`Distance to school: ${distanceToSchool.toFixed(2)}km`);
           
           // Calculate more accurate ETA based on distance and average speed (30 km/h in city traffic)
           const averageSpeedKmh = 30;
           const etaMinutes = Math.max(1, Math.round((minDistanceToPickup / averageSpeedKmh) * 60));
+          
+          console.log(`Calculated ETA: ${etaMinutes} minutes for ${minDistanceToPickup.toFixed(2)}km`);
           
           // Proximity alert (within 2km and 10 minutes)
           if (minDistanceToPickup < 2 && etaMinutes <= 10 && !proximityAlertSent && vanStatus === "en_route") {
