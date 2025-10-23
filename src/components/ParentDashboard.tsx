@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, MapPin, Clock, AlertTriangle, UserCheck, UserX, Bell, BellRing, LogOut, Bus, Home, AlertCircle } from "lucide-react";
+import { ArrowLeft, MapPin, LogOut, Bus, Home, Bell } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import SOSButton from "@/components/SOSButton";
 import EnhancedGoogleMap from "@/components/EnhancedGoogleMap";
@@ -26,7 +26,7 @@ interface ParentDashboardProps {
 
 const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
   const { signOut, user } = useAuth();
-  const [childStatus, setChildStatus] = useState<"absent" | "present">("present");
+  const [activeTab, setActiveTab] = useState<"profile" | "map" | "notifications">("map");
   const [vanStatus, setVanStatus] = useState<"approaching" | "arrived" | "en_route">("en_route");
   const [eta, setETA] = useState("12 mins");
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -35,7 +35,7 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
   const [loading, setLoading] = useState(true);
   const [proximityAlertSent, setProximityAlertSent] = useState(false);
 
-  // Fetch student and van data - force refresh
+  // Fetch student and van data
   useEffect(() => {
     if (!user) {
       setLoading(false);
@@ -44,7 +44,6 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
 
     const fetchStudentData = async () => {
       try {
-        // Fetch students linked to this parent
         const { data: students, error: studentsError } = await supabase
           .from('students')
           .select(`
@@ -70,12 +69,10 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
         if (students && students.length > 0) {
           setStudentData(students);
           
-          // Get van data from the first student (assuming single van per parent)
           if (students[0].vans) {
             setVanData(students[0].vans);
           }
         } else {
-          // Clear data if no students found
           setStudentData([]);
           setVanData(null);
         }
@@ -89,35 +86,6 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
     fetchStudentData();
   }, [user]);
 
-  const handleChildStatusUpdate = async (studentId: string, status: "absent" | "present") => {
-    try {
-      const { error } = await supabase
-        .from('students')
-        .update({ 
-          boarded: status === "present",
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', studentId)
-        .eq('parent_id', user?.id);
-
-      if (error) {
-        toast({
-          title: "Update Failed",
-          description: "Could not update attendance status",
-          variant: "destructive",
-        });
-      } else {
-        setChildStatus(status);
-        toast({
-          title: "Attendance Updated",
-          description: `Child marked as ${status}`,
-        });
-      }
-    } catch (error) {
-      console.error('Error updating attendance:', error);
-    }
-  };
-
   const texts = {
     en: {
       title: "Parent Dashboard",
@@ -126,8 +94,6 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
       currentStatus: "Current Status",
       estimatedArrival: "Estimated Arrival",
       liveTracking: "Live Van Tracking",
-      markAbsent: "Mark Child Absent",
-      markPresent: "Mark Child Present",
       notifications: "Notifications",
       vanApproaching: "Van reached main road near pickup point",
       vanArrived: "Van entered school campus",
@@ -141,8 +107,6 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
       currentStatus: "தற்போதைய நிலை",
       estimatedArrival: "வருகை நேரம்",
       liveTracking: "நேரடி வேன் கண்காணிப்பு",
-      markAbsent: "குழந்தை இல்லை என குறிக்கவும்",
-      markPresent: "குழந்தை உள்ளார் என குறிக்கவும்",
       notifications: "அறிவிப்புகள்",
       vanApproaching: "வேன் பிக்கப் பாயிண்ட் அருகில் முக்கிய சாலையை அடைந்தது",
       vanArrived: "வேன் பள்ளி வளாகத்தில் நுழைந்தது",
@@ -206,11 +170,9 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
           const newNotification = payload.new as Notification;
           setNotifications(prev => [newNotification, ...prev]);
           
-          // Show toast for new notification
           toast({
             title: newNotification.title,
             description: newNotification.message,
-            className: getNotificationToastClass(newNotification.type)
           });
         }
       )
@@ -241,7 +203,6 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
           const oldRecord = payload.old;
           const newRecord = payload.new;
 
-          // Check for boarding status change
           if (oldRecord.boarded !== newRecord.boarded) {
             if (newRecord.boarded) {
               createNotification(
@@ -253,7 +214,6 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
             }
           }
 
-          // Check for drop status change
           if (oldRecord.dropped !== newRecord.dropped) {
             if (newRecord.dropped) {
               createNotification(
@@ -265,7 +225,6 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
             }
           }
 
-          // Update local state
           setStudentData(prev => prev.map(s => 
             s.id === newRecord.id ? { ...s, ...newRecord } : s
           ));
@@ -278,7 +237,7 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
     };
   }, [studentData, createNotification]);
 
-  // Real-time van status tracking based on actual location
+  // Real-time van status tracking
   useEffect(() => {
     if (!vanData || !studentData.length) return;
 
@@ -292,49 +251,32 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
 
         if (error || !vanUpdates) return;
 
-        // Get student pickup locations - use actual coordinates for Tirumangalam
-        const studentPickupPoints = studentData.map(student => {
-          // For Tirumangalam pickup stop, use coordinates matching current van location
-          if (student.pickup_stop.toLowerCase().includes('tirumangalam')) {
-            return {
-              name: student.full_name,
-              pickupStop: student.pickup_stop,
-              lat: 9.8142, // Matches current van location area
-              lng: 77.9892
-            };
-          }
-          // For other pickup stops, use area-based coordinates
-          return {
-            name: student.full_name,
-            pickupStop: student.pickup_stop,
-            lat: 9.8100 + (student.pickup_stop.length * 0.0001), 
-            lng: 77.9800 + (student.pickup_stop.charCodeAt(0) * 0.00001)
-          };
-        });
+        const studentPickupPoints = studentData.map(student => ({
+          name: student.full_name,
+          pickupStop: student.pickup_stop,
+          lat: student.pickup_stop.toLowerCase().includes('tirumangalam') ? 9.8142 : 9.8100,
+          lng: student.pickup_stop.toLowerCase().includes('tirumangalam') ? 77.9892 : 77.9800
+        }));
 
-        // School campus coordinates (use actual school location)
         const schoolLocation = { lat: 9.7800, lng: 77.9500 };
 
         if (vanUpdates.current_lat && vanUpdates.current_lng) {
-          // Ensure coordinates are proper numbers
           const vanLocation = { 
             lat: Number(vanUpdates.current_lat), 
             lng: Number(vanUpdates.current_lng) 
           };
           
-          // Calculate distance using Haversine formula for better accuracy
           const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-            const R = 6371; // Earth's radius in kilometers
+            const R = 6371;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
                       Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
                       Math.sin(dLon/2) * Math.sin(dLon/2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c; // Distance in kilometers
+            return R * c;
           };
 
-          // Calculate distance to nearest student pickup point 
           let minDistanceToPickup = Infinity;
           let nearestStudent = null;
           
@@ -346,13 +288,9 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
             }
           }
           
-          // Calculate distance to school
           const distanceToSchool = calculateDistance(vanLocation.lat, vanLocation.lng, schoolLocation.lat, schoolLocation.lng);
-
-          // Calculate ETA in minutes (assuming 30 km/h average speed)
           const etaMinutes = Math.max(1, Math.floor(minDistanceToPickup * 2));
           
-          // Send proximity alert if van is 10 minutes away and alert not sent yet
           if (etaMinutes <= 10 && !proximityAlertSent && vanStatus === "en_route") {
             setProximityAlertSent(true);
             createNotification(
@@ -363,7 +301,6 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
             );
           }
 
-          // Check if van is at pickup location (within 0.5km from pickup)
           if (minDistanceToPickup < 0.5) {
             if (vanStatus !== "approaching") {
               setVanStatus("approaching");
@@ -375,10 +312,7 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
               );
             }
             setETA("At pickup point");
-          }
-          
-          // Check for school entry notification (within 2km from school)
-          else if (distanceToSchool < 2.0) {
+          } else if (distanceToSchool < 2.0) {
             if (vanStatus !== "arrived") {
               setVanStatus("arrived");
               createNotification(
@@ -389,13 +323,10 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
               );
               setETA("At school");
             }
-          }
-          
-          // Default en route status
-          else {
+          } else {
             if (vanStatus !== "en_route") {
               setVanStatus("en_route");
-              setProximityAlertSent(false); // Reset proximity alert for next trip
+              setProximityAlertSent(false);
             }
             setETA(`${etaMinutes} mins`);
           }
@@ -405,49 +336,10 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
       }
     };
 
-    // Track initially and then every 30 seconds
     trackVanStatus();
     const interval = setInterval(trackVanStatus, 30000);
     return () => clearInterval(interval);
-  }, [vanData, studentData, vanStatus, t, createNotification, proximityAlertSent]);
-
-  // Helper function to get notification icon
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'proximity_alert': return <Clock className="h-4 w-4 text-yellow-500" />;
-      case 'pickup_notification': return <UserCheck className="h-4 w-4 text-green-500" />;
-      case 'drop_notification': return <Home className="h-4 w-4 text-blue-500" />;
-      case 'trip_start': return <Bus className="h-4 w-4 text-primary" />;
-      case 'trip_end': return <MapPin className="h-4 w-4 text-success" />;
-      case 'emergency': return <AlertCircle className="h-4 w-4 text-red-500" />;
-      case 'delay': return <AlertTriangle className="h-4 w-4 text-orange-500" />;
-      default: return <BellRing className="h-4 w-4 text-primary" />;
-    }
-  };
-
-  // Helper function to get notification color
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case 'proximity_alert': return 'bg-yellow-50 border-yellow-200';
-      case 'pickup_notification': return 'bg-green-50 border-green-200';
-      case 'drop_notification': return 'bg-blue-50 border-blue-200';
-      case 'trip_start': return 'bg-primary/5 border-primary/20';
-      case 'trip_end': return 'bg-success/5 border-success/20';
-      case 'emergency': return 'bg-red-50 border-red-200';
-      case 'delay': return 'bg-orange-50 border-orange-200';
-      default: return 'bg-accent border-accent';
-    }
-  };
-
-  const getNotificationToastClass = (type: string) => {
-    switch (type) {
-      case 'emergency': return 'bg-destructive text-destructive-foreground';
-      case 'delay': return 'bg-orange-500 text-white';
-      case 'pickup_notification':
-      case 'drop_notification': return 'bg-success text-success-foreground';
-      default: return 'bg-primary text-primary-foreground';
-    }
-  };
+  }, [vanData, studentData, vanStatus, createNotification, proximityAlertSent]);
 
   // Mark notification as read
   const markAsRead = async (notificationId: string) => {
@@ -461,202 +353,292 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
     );
   };
 
-  // Format timestamp
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(minutes / 60);
-    
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    return date.toLocaleDateString();
-  };
-
-  const getStatusColor = () => {
-    switch (vanStatus) {
-      case "approaching": return "secondary";
-      case "arrived": return "success";
-      default: return "primary";
-    }
-  };
-
-  const getStatusText = () => {
-    switch (vanStatus) {
-      case "approaching": return "Near pickup point";
-      case "arrived": return "At school campus";  
-      default: return t.enRoute;
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-primary text-primary-foreground p-4 flex items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={onBack} className="text-primary-foreground hover:bg-primary-light/20">
-          <ArrowLeft className="h-4 w-4" />
+      {/* Top Bar */}
+      <div className="bg-foreground text-background p-4 flex items-center justify-between">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onBack}
+          className="text-background hover:bg-background/10"
+        >
+          <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div className="flex-1">
-          <h1 className="text-lg font-semibold">{t.title}</h1>
-          <p className="text-sm opacity-90">{t.childName}</p>
-        </div>
-        <Button variant="ghost" size="sm" className="text-primary-foreground" onClick={signOut}>
-          <LogOut className="h-4 w-4" />
+        <h1 className="text-lg font-semibold">
+          {activeTab === "profile" ? "Profile" : activeTab === "map" ? "Tracking" : "Notifications"}
+        </h1>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => signOut()}
+          className="text-background hover:bg-background/10"
+        >
+          <LogOut className="h-5 w-5" />
         </Button>
-        <SOSButton />
-      </header>
+      </div>
 
-      <div className="p-4 space-y-4">
-        {/* Van Status Card */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <MapPin className="h-5 w-5 text-primary" />
-              {t.vanNumber}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">{t.currentStatus}</span>
-              <Badge className={`bg-${getStatusColor()} text-${getStatusColor()}-foreground`}>
-                {getStatusText()}
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">{t.estimatedArrival}</span>
-              <div className="flex items-center gap-1 text-sm font-semibold">
-                <Clock className="h-4 w-4" />
+      {/* Profile Tab */}
+      {activeTab === "profile" && (
+        <div className="p-4 space-y-4 pb-20">
+          {/* Parent Info Card */}
+          <Card className="bg-foreground text-background border-0 overflow-hidden">
+            <CardContent className="p-6 space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-lg">
+                    MP
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">MYMCHE PARENT</h3>
+                    <p className="text-background/70 text-sm">+919876543210</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" className="text-background/70 hover:bg-background/10">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </Button>
+              </div>
+              <div className="space-y-1 text-sm pt-2">
+                <p className="text-background/90 font-medium">Address</p>
+                <p className="text-background/70">Anna nagar, Chennai</p>
+                <p className="text-background/70">600040</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Children Details */}
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-3">Children Details</h3>
+            {studentData.length > 0 ? studentData.map((student) => (
+              <Card key={student.id} className="mb-3 border border-border/50">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                        S
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-foreground">{student.full_name}</h4>
+                        <p className="text-xs text-muted-foreground">
+                          {student.vans?.route_name || "Maharishi Vidya Mandir Sr Sec School"}
+                        </p>
+                      </div>
+                    </div>
+                    <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+
+                  {/* Bus Details */}
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Bus className="w-4 h-4 text-primary" />
+                      <span className="font-medium text-foreground">Bus Details</span>
+                    </div>
+                    <div className="ml-6 space-y-1 text-xs text-muted-foreground">
+                      <p>{student.vans?.van_number || "IL_TN 01 BE 56"}</p>
+                      <p>IL_TN 01 BE 53</p>
+                    </div>
+
+                    {/* Pickup Details */}
+                    <div className="flex items-center gap-2 text-muted-foreground mt-3">
+                      <MapPin className="w-4 h-4 text-success" />
+                      <span className="font-medium text-foreground">Pickup Details</span>
+                    </div>
+                    <div className="ml-6 space-y-1 text-xs text-muted-foreground">
+                      <p>Mon,Thu,Wed,Thu,Fri,Sat</p>
+                      <p>{student.pickup_stop}</p>
+                      <p className="text-foreground font-medium">06:30 AM - 07:41 AM</p>
+                    </div>
+
+                    {/* Drop Details */}
+                    <div className="flex items-center gap-2 text-muted-foreground mt-3">
+                      <MapPin className="w-4 h-4 text-emergency" />
+                      <span className="font-medium text-foreground">Drop Details</span>
+                    </div>
+                    <div className="ml-6 space-y-1 text-xs text-muted-foreground">
+                      <p>Mon,Thu,Wed,Thu,Fri,Sat</p>
+                      <p>{student.pickup_stop}</p>
+                      <p className="text-foreground font-medium">10:30 AM - 12:00 PM</p>
+                    </div>
+                  </div>
+
+                  {/* View Location Button */}
+                  <Button 
+                    variant="outline" 
+                    className="w-full mt-4 border-foreground/20 hover:bg-foreground hover:text-background"
+                    onClick={() => setActiveTab("map")}
+                  >
+                    <MapPin className="w-4 h-4 mr-2" />
+                    View Location
+                  </Button>
+                </CardContent>
+              </Card>
+            )) : (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  No children registered
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Map Tab */}
+      {activeTab === "map" && (
+        <div className="relative h-[calc(100vh-8rem)]">
+          <div className="w-full h-full">
+            <EnhancedGoogleMap 
+              height="h-full"
+              parentId={user?.id}
+            />
+          </div>
+
+          {/* Bottom Overlay */}
+          <div className="absolute bottom-0 left-0 right-0 bg-background rounded-t-3xl shadow-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-foreground text-background flex items-center justify-center font-bold">
+                  <Bus className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    {studentData.length > 0 ? studentData[0].full_name : "Loading..."}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">{vanData?.van_number}</p>
+                </div>
+              </div>
+              <div className="bg-primary text-primary-foreground px-3 py-1 rounded-lg text-sm font-semibold">
                 {eta}
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Live Tracking - Half Screen */}
-        <Card className="border-2 border-primary/20">
-          <CardHeader className="pb-2 bg-primary/5">
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <MapPin className="h-6 w-6 text-primary animate-pulse" />
-              {t.liveTracking}
-              <Badge className="ml-auto bg-success text-success-foreground">Live</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-2">
-            <EnhancedGoogleMap height="h-[50vh]" parentId={user?.id} />
-          </CardContent>
-        </Card>
-
-        {/* Child Attendance */}
-        <Card>
-          <CardContent className="pt-6">
-            {studentData.length > 0 ? (
-              <div className="space-y-4">
-                {studentData.map((student, index) => (
-                  <div key={student.id} className="flex items-center justify-between p-3 bg-accent rounded-lg">
-                    <div>
-                      <p className="font-medium">{student.full_name}</p>
-                      <p className="text-sm text-muted-foreground">{student.grade} • {student.pickup_stop}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant={student.boarded ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handleChildStatusUpdate(student.id, student.boarded ? "absent" : "present")}
-                        className="gap-2"
-                      >
-                        <UserCheck className="h-4 w-4" />
-                        {student.boarded ? "Present" : t.markPresent}
-                      </Button>
-                      <Button
-                        variant={!student.boarded ? "destructive" : "outline"}
-                        size="sm"
-                        onClick={() => handleChildStatusUpdate(student.id, student.boarded ? "absent" : "present")}
-                        className="gap-2"
-                      >
-                        <UserX className="h-4 w-4" />
-                        {!student.boarded ? "Absent" : t.markAbsent}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+            {/* Progress Bar */}
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                  <Home className="w-4 h-4 text-primary" />
+                </div>
+                <span className="text-xs font-medium text-foreground">10:30 AM</span>
               </div>
-            ) : loading ? (
-              <p className="text-center text-muted-foreground py-4">Loading student data...</p>
-            ) : (
-              <div className="text-center space-y-3 py-6">
-                <p className="text-muted-foreground">No students found for your account</p>
-                <p className="text-xs text-muted-foreground">
-                  Please contact your school administrator to link your children to your account
-                </p>
-                <div className="bg-accent p-3 rounded-lg text-left">
-                  <p className="text-xs font-medium mb-1">Your Account Info:</p>
-                  <p className="text-xs text-muted-foreground">Mobile: {user?.email?.replace('@gmail.com', '')}</p>
-                  <p className="text-xs text-muted-foreground">User ID: {user?.id?.slice(0, 8)}...</p>
+              <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-primary transition-all" style={{ width: vanStatus === "arrived" ? "100%" : vanStatus === "approaching" ? "60%" : "30%" }}></div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-foreground">11:17 AM</span>
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                  <MapPin className="w-4 h-4 text-muted-foreground" />
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
 
-        {/* Notifications */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Bell className="h-5 w-5" />
-              {t.notifications}
-              {notifications.filter(n => !n.read).length > 0 && (
-                <Badge variant="destructive" className="ml-2">
-                  {notifications.filter(n => !n.read).length}
-                </Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {notifications.length > 0 ? (
-              <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                {notifications.map((notification) => (
-                  <div 
-                    key={notification.id} 
-                    className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                      getNotificationColor(notification.type)
-                    } ${notification.read ? 'opacity-60' : 'shadow-sm'}`}
-                    onClick={() => !notification.read && markAsRead(notification.id)}
-                  >
-                    <div className="mt-0.5">
-                      {getNotificationIcon(notification.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-semibold">{notification.title}</p>
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">
-                          {formatTime(notification.created_at)}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {notification.message}
+            <Button 
+              className="w-full bg-muted text-foreground hover:bg-muted/80"
+              onClick={() => setActiveTab("notifications")}
+            >
+              Trip Notifications
+            </Button>
+          </div>
+
+          {/* ETA Badge on Map */}
+          {vanData && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-foreground text-background px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+              <span className="text-sm font-semibold">ETA</span>
+              <span className="text-xs">{eta}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Notifications Tab */}
+      {activeTab === "notifications" && (
+        <div className="p-4 space-y-3 pb-20">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-foreground">Notifications</h2>
+            <p className="text-xs text-muted-foreground">Know updates from NeoTrack</p>
+          </div>
+          
+          {notifications.length > 0 ? (
+            <div className="space-y-3">
+              {notifications.map((notification) => (
+                <Card 
+                  key={notification.id} 
+                  className="border-0 shadow-sm"
+                  onClick={() => !notification.read && markAsRead(notification.id)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(notification.created_at).toLocaleDateString('en-GB', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                        }) + ' ' + new Date(notification.created_at).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
                       </p>
                       {!notification.read && (
-                        <Badge variant="secondary" className="mt-2 text-xs">New</Badge>
+                        <Badge variant="default" className="text-xs">New</Badge>
                       )}
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 space-y-2">
-                <Bell className="h-12 w-12 text-muted-foreground/30 mx-auto" />
-                <p className="text-sm text-muted-foreground">
-                  {t.noNotifications}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  You'll receive alerts for van location, pickup/drop updates, and safety notifications
-                </p>
-              </div>
+                    <p className="text-sm text-foreground leading-relaxed">
+                      {notification.message}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Bell className="h-12 w-12 mx-auto text-muted-foreground/30 mb-2" />
+              <p className="text-sm text-muted-foreground">No notifications</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border">
+        <div className="flex justify-around items-center py-3 px-4 max-w-md mx-auto">
+          <button
+            onClick={() => setActiveTab("profile")}
+            className={`flex flex-col items-center gap-1 ${activeTab === "profile" ? "text-primary" : "text-muted-foreground"}`}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span className="text-xs font-medium">Profile</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("map")}
+            className={`flex flex-col items-center gap-1 ${activeTab === "map" ? "text-primary" : "text-muted-foreground"}`}
+          >
+            <MapPin className="w-6 h-6" />
+            <span className="text-xs font-medium">Map</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("notifications")}
+            className={`flex flex-col items-center gap-1 relative ${activeTab === "notifications" ? "text-primary" : "text-muted-foreground"}`}
+          >
+            <Bell className="w-6 h-6" />
+            {notifications.filter(n => !n.read).length > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-emergency rounded-full text-white text-xs flex items-center justify-center">
+                {notifications.filter(n => !n.read).length}
+              </span>
             )}
-          </CardContent>
-        </Card>
+            <span className="text-xs font-medium">Alerts</span>
+          </button>
+          <button
+            className="flex flex-col items-center gap-1 text-muted-foreground"
+          >
+            <SOSButton />
+          </button>
+        </div>
       </div>
     </div>
   );
