@@ -8,6 +8,7 @@ import { ArrowLeft, Play, Square, Users, MapPin, UserCheck, UserX, LogOut } from
 import { useAuth } from "@/contexts/AuthContext";
 import SOSButton from "@/components/SOSButton";
 import { toast } from "@/hooks/use-toast";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 
 interface DriverDashboardProps {
   language: "en" | "ta";
@@ -437,6 +438,13 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
             </CardContent>
           </Card>
         )}
+
+        {/* Change Password Section */}
+        <Card>
+          <CardContent className="pt-6">
+            <ChangePasswordDialog />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

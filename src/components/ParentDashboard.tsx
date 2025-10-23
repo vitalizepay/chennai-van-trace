@@ -8,6 +8,7 @@ import SOSButton from "@/components/SOSButton";
 import EnhancedGoogleMap from "@/components/EnhancedGoogleMap";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 
 interface Notification {
   id: string;
@@ -483,6 +484,11 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
                 </CardContent>
               </Card>
             )}
+          </div>
+
+          {/* Change Password Section */}
+          <div className="pt-4">
+            <ChangePasswordDialog />
           </div>
         </div>
       )}
