@@ -279,6 +279,7 @@ export type Database = {
         Row: {
           boarded: boolean | null
           created_at: string
+          drop_time: string | null
           dropped: boolean | null
           emergency_contact: string | null
           full_name: string
@@ -287,6 +288,7 @@ export type Database = {
           medical_info: string | null
           parent_id: string | null
           pickup_stop: string
+          pickup_time: string | null
           school_id: string
           status: string
           updated_at: string
@@ -295,6 +297,7 @@ export type Database = {
         Insert: {
           boarded?: boolean | null
           created_at?: string
+          drop_time?: string | null
           dropped?: boolean | null
           emergency_contact?: string | null
           full_name: string
@@ -303,6 +306,7 @@ export type Database = {
           medical_info?: string | null
           parent_id?: string | null
           pickup_stop: string
+          pickup_time?: string | null
           school_id: string
           status?: string
           updated_at?: string
@@ -311,6 +315,7 @@ export type Database = {
         Update: {
           boarded?: boolean | null
           created_at?: string
+          drop_time?: string | null
           dropped?: boolean | null
           emergency_contact?: string | null
           full_name?: string
@@ -319,6 +324,7 @@ export type Database = {
           medical_info?: string | null
           parent_id?: string | null
           pickup_stop?: string
+          pickup_time?: string | null
           school_id?: string
           status?: string
           updated_at?: string

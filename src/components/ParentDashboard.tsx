@@ -2,13 +2,15 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, MapPin, LogOut, Bus, Home, Bell } from "lucide-react";
+import { ArrowLeft, MapPin, LogOut, Bus, Home, Bell, Edit2, Save, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import SOSButton from "@/components/SOSButton";
 import EnhancedGoogleMap from "@/components/EnhancedGoogleMap";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Notification {
   id: string;
@@ -35,6 +37,14 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
   const [vanData, setVanData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [proximityAlertSent, setProximityAlertSent] = useState(false);
+  
+  // Edit states
+  const [editingAddress, setEditingAddress] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<string | null>(null);
+  const [parentDetails, setParentDetails] = useState<any>(null);
+  const [editedAddress, setEditedAddress] = useState("");
+  const [editedPickupTime, setEditedPickupTime] = useState("");
+  const [editedDropTime, setEditedDropTime] = useState("");
 
   // Fetch student and van data
   useEffect(() => {
@@ -45,6 +55,19 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
 
     const fetchStudentData = async () => {
       try {
+        // Fetch parent details
+        const { data: parentData, error: parentError } = await supabase
+          .from('parent_details')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (!parentError && parentData) {
+          setParentDetails(parentData);
+          setEditedAddress(parentData.address || "");
+        }
+
+        // Fetch students
         const { data: students, error: studentsError } = await supabase
           .from('students')
           .select(`
@@ -354,6 +377,73 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
     );
   };
 
+  // Save address
+  const saveAddress = async () => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('parent_details')
+        .update({ address: editedAddress })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setParentDetails({ ...parentDetails, address: editedAddress });
+      setEditingAddress(false);
+      toast({
+        title: "Success",
+        description: "Address updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating address:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update address",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Save student times
+  const saveStudentTimes = async (studentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('students')
+        .update({ 
+          pickup_time: editedPickupTime,
+          drop_time: editedDropTime 
+        })
+        .eq('id', studentId);
+
+      if (error) throw error;
+
+      setStudentData(prev => prev.map(s => 
+        s.id === studentId 
+          ? { ...s, pickup_time: editedPickupTime, drop_time: editedDropTime }
+          : s
+      ));
+      setEditingStudent(null);
+      toast({
+        title: "Success",
+        description: "Pickup and drop times updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating times:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update times",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const startEditingStudent = (studentId: string, pickupTime: string, dropTime: string) => {
+    setEditingStudent(studentId);
+    setEditedPickupTime(pickupTime || "");
+    setEditedDropTime(dropTime || "");
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Top Bar */}
@@ -388,23 +478,58 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-lg">
-                    MP
+                    {user?.email?.substring(0, 2).toUpperCase() || "MP"}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg">MYMCHE PARENT</h3>
-                    <p className="text-background/70 text-sm">+919876543210</p>
+                    <h3 className="font-semibold text-lg">{user?.email}</h3>
+                    <p className="text-background/70 text-sm">{parentDetails?.emergency_contact || "+919876543210"}</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" className="text-background/70 hover:bg-background/10">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                </Button>
+                {!editingAddress ? (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="text-background/70 hover:bg-background/10"
+                    onClick={() => setEditingAddress(true)}
+                  >
+                    <Edit2 className="w-5 h-5" />
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-background/70 hover:bg-background/10"
+                      onClick={saveAddress}
+                    >
+                      <Save className="w-5 h-5" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-background/70 hover:bg-background/10"
+                      onClick={() => {
+                        setEditingAddress(false);
+                        setEditedAddress(parentDetails?.address || "");
+                      }}
+                    >
+                      <X className="w-5 h-5" />
+                    </Button>
+                  </div>
+                )}
               </div>
-              <div className="space-y-1 text-sm pt-2">
+              <div className="space-y-2 text-sm pt-2">
                 <p className="text-background/90 font-medium">Address</p>
-                <p className="text-background/70">Anna nagar, Chennai</p>
-                <p className="text-background/70">600040</p>
+                {editingAddress ? (
+                  <Textarea
+                    value={editedAddress}
+                    onChange={(e) => setEditedAddress(e.target.value)}
+                    className="bg-background/10 text-background border-background/20 min-h-[80px]"
+                    placeholder="Enter your address"
+                  />
+                ) : (
+                  <p className="text-background/70">{parentDetails?.address || "No address set"}</p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -434,13 +559,25 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
 
                   {/* Bus Details */}
                   <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Bus className="w-4 h-4 text-primary" />
-                      <span className="font-medium text-foreground">Bus Details</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Bus className="w-4 h-4 text-primary" />
+                        <span className="font-medium text-foreground">Bus Details</span>
+                      </div>
+                      {editingStudent !== student.id && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2"
+                          onClick={() => startEditingStudent(student.id, student.pickup_time, student.drop_time)}
+                        >
+                          <Edit2 className="w-3 h-3 mr-1" />
+                          Edit Times
+                        </Button>
+                      )}
                     </div>
                     <div className="ml-6 space-y-1 text-xs text-muted-foreground">
-                      <p>{student.vans?.van_number || "IL_TN 01 BE 56"}</p>
-                      <p>IL_TN 01 BE 53</p>
+                      <p>{student.vans?.van_number || "Not assigned"}</p>
                     </div>
 
                     {/* Pickup Details */}
@@ -449,9 +586,20 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
                       <span className="font-medium text-foreground">Pickup Details</span>
                     </div>
                     <div className="ml-6 space-y-1 text-xs text-muted-foreground">
-                      <p>Mon,Thu,Wed,Thu,Fri,Sat</p>
+                      <p>Mon, Tue, Wed, Thu, Fri, Sat</p>
                       <p>{student.pickup_stop}</p>
-                      <p className="text-foreground font-medium">06:30 AM - 07:41 AM</p>
+                      {editingStudent === student.id ? (
+                        <Input
+                          value={editedPickupTime}
+                          onChange={(e) => setEditedPickupTime(e.target.value)}
+                          placeholder="e.g., 06:30 AM - 07:41 AM"
+                          className="h-8 text-xs"
+                        />
+                      ) : (
+                        <p className="text-foreground font-medium">
+                          {student.pickup_time || "06:30 AM - 07:41 AM"}
+                        </p>
+                      )}
                     </div>
 
                     {/* Drop Details */}
@@ -460,10 +608,43 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
                       <span className="font-medium text-foreground">Drop Details</span>
                     </div>
                     <div className="ml-6 space-y-1 text-xs text-muted-foreground">
-                      <p>Mon,Thu,Wed,Thu,Fri,Sat</p>
+                      <p>Mon, Tue, Wed, Thu, Fri, Sat</p>
                       <p>{student.pickup_stop}</p>
-                      <p className="text-foreground font-medium">10:30 AM - 12:00 PM</p>
+                      {editingStudent === student.id ? (
+                        <Input
+                          value={editedDropTime}
+                          onChange={(e) => setEditedDropTime(e.target.value)}
+                          placeholder="e.g., 10:30 AM - 12:00 PM"
+                          className="h-8 text-xs"
+                        />
+                      ) : (
+                        <p className="text-foreground font-medium">
+                          {student.drop_time || "10:30 AM - 12:00 PM"}
+                        </p>
+                      )}
                     </div>
+
+                    {editingStudent === student.id && (
+                      <div className="flex gap-2 mt-3">
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => saveStudentTimes(student.id)}
+                        >
+                          <Save className="w-3 h-3 mr-1" />
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => setEditingStudent(null)}
+                        >
+                          <X className="w-3 h-3 mr-1" />
+                          Cancel
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {/* View Location Button */}
