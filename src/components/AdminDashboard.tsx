@@ -3,13 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog, LogOut, Shield, TrendingUp, Clock, MapPin as LocationIcon, Plus } from "lucide-react";
+import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog, LogOut, Shield, TrendingUp, Clock, MapPin as LocationIcon, Plus, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import EnhancedGoogleMap from "./EnhancedGoogleMap";
 import ComprehensiveUserManager from "./ComprehensiveUserManager";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -74,6 +75,7 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
   const [isCreateVanOpen, setIsCreateVanOpen] = useState(false);
   const [isManageDriverOpen, setIsManageDriverOpen] = useState(false);
   const [selectedVan, setSelectedVan] = useState<Van | null>(null);
+  const [vanToDelete, setVanToDelete] = useState<Van | null>(null);
   const [availableDrivers, setAvailableDrivers] = useState<Array<{ id: string; name: string; currentVan: string | null }>>([]);
   const [selectedDriverId, setSelectedDriverId] = useState<string>("");
   const [newVan, setNewVan] = useState({
@@ -479,6 +481,53 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
     }
   };
 
+  const handleDeleteVan = async () => {
+    if (!vanToDelete) return;
+
+    try {
+      // First, unassign students from this van
+      await supabase
+        .from('students')
+        .update({ van_id: null })
+        .eq('van_id', vanToDelete.id);
+
+      // If there's a driver, unassign them
+      if (vanToDelete.driver_id) {
+        await supabase
+          .from('driver_details')
+          .update({ 
+            van_assigned: null,
+            route_assigned: null 
+          })
+          .eq('user_id', vanToDelete.driver_id);
+      }
+
+      // Delete the van
+      const { error } = await supabase
+        .from('vans')
+        .delete()
+        .eq('id', vanToDelete.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Van Deleted",
+        description: `${vanToDelete.van_number} has been removed`,
+        className: "bg-success text-success-foreground"
+      });
+
+      setVanToDelete(null);
+      fetchSchoolData();
+    } catch (error: any) {
+      console.error('Error deleting van:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete van",
+        variant: "destructive"
+      });
+    }
+  };
+
   const activeVansCount = vans.filter(van => van.status === "active").length;
   const totalStudents = vans.reduce((sum, van) => sum + (van.current_students || 0), 0);
   const activeRoutes = new Set(vans.filter(van => van.status === "active" && van.route_name).map(van => van.route_name)).size;
@@ -751,6 +800,13 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
                           >
                             Details
                           </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => setVanToDelete(van)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -823,6 +879,33 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
                 </div>
               </DialogContent>
             </Dialog>
+
+            {/* Delete Van Confirmation Dialog */}
+            <AlertDialog open={!!vanToDelete} onOpenChange={() => setVanToDelete(null)}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Van?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete <strong>{vanToDelete?.van_number}</strong>?
+                    <br /><br />
+                    This will:
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>Unassign all students from this van</li>
+                      <li>Remove driver assignment</li>
+                      <li>Permanently delete the van record</li>
+                    </ul>
+                    <br />
+                    This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteVan} className="bg-destructive hover:bg-destructive/90">
+                    Delete Van
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </TabsContent>
 
           <TabsContent value="tracking" className="space-y-4">
