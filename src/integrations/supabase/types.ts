@@ -80,6 +80,60 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          metadata: Json | null
+          read: boolean | null
+          student_id: string | null
+          title: string
+          type: string
+          user_id: string
+          van_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          metadata?: Json | null
+          read?: boolean | null
+          student_id?: string | null
+          title: string
+          type: string
+          user_id: string
+          van_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          metadata?: Json | null
+          read?: boolean | null
+          student_id?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+          van_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_van_id_fkey"
+            columns: ["van_id"]
+            isOneToOne: false
+            referencedRelation: "vans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       otps: {
         Row: {
           attempts: number
@@ -293,7 +347,7 @@ export type Database = {
           created_at: string
           details: Json | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           user_agent: string | null
           user_id: string
         }
@@ -302,7 +356,7 @@ export type Database = {
           created_at?: string
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           user_agent?: string | null
           user_id: string
         }
@@ -311,7 +365,7 @@ export type Database = {
           created_at?: string
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           user_agent?: string | null
           user_id?: string
         }
@@ -413,21 +467,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      cleanup_expired_otps: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      create_admin_user: {
-        Args:
-          | { _email: string; _full_name: string; _mobile: string }
-          | {
+      cleanup_expired_otps: { Args: never; Returns: undefined }
+      create_admin_user:
+        | {
+            Args: { _email: string; _full_name: string; _mobile: string }
+            Returns: string
+          }
+        | {
+            Args: {
               _email: string
               _full_name: string
               _mobile: string
               _school_id?: string
             }
-        Returns: string
-      }
+            Returns: string
+          }
       create_super_admin_user: {
         Args: { _email: string; _full_name: string; _mobile: string }
         Returns: string
@@ -477,10 +531,7 @@ export type Database = {
         Args: { _user_id: string; _van_id: string }
         Returns: boolean
       }
-      make_user_admin: {
-        Args: { _user_email: string }
-        Returns: undefined
-      }
+      make_user_admin: { Args: { _user_email: string }; Returns: undefined }
       user_has_permanent_password: {
         Args: { _user_id: string }
         Returns: boolean

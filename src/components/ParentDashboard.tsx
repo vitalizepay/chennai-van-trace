@@ -1,13 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, MapPin, Clock, AlertTriangle, UserCheck, UserX, Bell, BellRing, LogOut } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, AlertTriangle, UserCheck, UserX, Bell, BellRing, LogOut, Bus, Home, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import SOSButton from "@/components/SOSButton";
 import EnhancedGoogleMap from "@/components/EnhancedGoogleMap";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+
+interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+  metadata: any;
+}
 
 interface ParentDashboardProps {
   language: "en" | "ta";
@@ -19,10 +29,11 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
   const [childStatus, setChildStatus] = useState<"absent" | "present">("present");
   const [vanStatus, setVanStatus] = useState<"approaching" | "arrived" | "en_route">("en_route");
   const [eta, setETA] = useState("12 mins");
-  const [notifications, setNotifications] = useState<string[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [studentData, setStudentData] = useState<any[]>([]);
   const [vanData, setVanData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [proximityAlertSent, setProximityAlertSent] = useState(false);
 
   // Fetch student and van data - force refresh
   useEffect(() => {
@@ -142,6 +153,131 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
 
   const t = texts[language];
 
+  // Create notification helper
+  const createNotification = useCallback(async (type: string, title: string, message: string, metadata: any = {}) => {
+    if (!user || !studentData.length) return;
+
+    try {
+      await supabase.from('notifications').insert({
+        user_id: user.id,
+        student_id: studentData[0].id,
+        van_id: vanData?.id,
+        type,
+        title,
+        message,
+        metadata
+      });
+    } catch (error) {
+      console.error('Error creating notification:', error);
+    }
+  }, [user, studentData, vanData]);
+
+  // Fetch notifications
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchNotifications = async () => {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (!error && data) {
+        setNotifications(data);
+      }
+    };
+
+    fetchNotifications();
+
+    // Subscribe to real-time notifications
+    const channel = supabase
+      .channel('parent-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          const newNotification = payload.new as Notification;
+          setNotifications(prev => [newNotification, ...prev]);
+          
+          // Show toast for new notification
+          toast({
+            title: newNotification.title,
+            description: newNotification.message,
+            className: getNotificationToastClass(newNotification.type)
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  // Subscribe to student boarding/dropping events
+  useEffect(() => {
+    if (!studentData.length) return;
+
+    const studentIds = studentData.map(s => s.id);
+
+    const channel = supabase
+      .channel('student-status-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'students',
+          filter: `id=in.(${studentIds.join(',')})`
+        },
+        (payload) => {
+          const oldRecord = payload.old;
+          const newRecord = payload.new;
+
+          // Check for boarding status change
+          if (oldRecord.boarded !== newRecord.boarded) {
+            if (newRecord.boarded) {
+              createNotification(
+                'pickup_notification',
+                'Child Picked Up',
+                `${newRecord.full_name} has been picked up by the van`,
+                { pickup_stop: newRecord.pickup_stop }
+              );
+            }
+          }
+
+          // Check for drop status change
+          if (oldRecord.dropped !== newRecord.dropped) {
+            if (newRecord.dropped) {
+              createNotification(
+                'drop_notification',
+                'Child Dropped',
+                `${newRecord.full_name} has been dropped at school`,
+                { pickup_stop: newRecord.pickup_stop }
+              );
+            }
+          }
+
+          // Update local state
+          setStudentData(prev => prev.map(s => 
+            s.id === newRecord.id ? { ...s, ...newRecord } : s
+          ));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [studentData, createNotification]);
+
   // Real-time van status tracking based on actual location
   useEffect(() => {
     if (!vanData || !studentData.length) return;
@@ -213,23 +349,30 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
           // Calculate distance to school
           const distanceToSchool = calculateDistance(vanLocation.lat, vanLocation.lng, schoolLocation.lat, schoolLocation.lng);
 
+          // Calculate ETA in minutes (assuming 30 km/h average speed)
+          const etaMinutes = Math.max(1, Math.floor(minDistanceToPickup * 2));
+          
+          // Send proximity alert if van is 10 minutes away and alert not sent yet
+          if (etaMinutes <= 10 && !proximityAlertSent && vanStatus === "en_route") {
+            setProximityAlertSent(true);
+            createNotification(
+              'proximity_alert',
+              'Van Approaching',
+              `${vanData.van_number} will arrive at pickup point in approximately ${etaMinutes} minutes`,
+              { eta: etaMinutes, pickup_stop: nearestStudent?.pickupStop }
+            );
+          }
+
           // Check if van is at pickup location (within 0.5km from pickup)
           if (minDistanceToPickup < 0.5) {
             if (vanStatus !== "approaching") {
               setVanStatus("approaching");
-              const message = `${vanData.van_number} reached main road near ${nearestStudent?.pickupStop || 'pickup point'}`;
-              setNotifications(prev => {
-                // Only add if this exact message isn't already present
-                if (!prev.includes(message)) {
-                  return [message, ...prev.slice(0, 4)];
-                }
-                return prev;
-              });
-              toast({
-                title: "Van Update",
-                description: message,
-                className: "bg-secondary text-secondary-foreground"
-              });
+              createNotification(
+                'trip_start',
+                'Van at Pickup Point',
+                `${vanData.van_number} has reached ${nearestStudent?.pickupStop || 'pickup point'}`,
+                { pickup_stop: nearestStudent?.pickupStop }
+              );
             }
             setETA("At pickup point");
           }
@@ -238,19 +381,12 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
           else if (distanceToSchool < 2.0) {
             if (vanStatus !== "arrived") {
               setVanStatus("arrived");
-              const message = `${vanData.van_number} entered school campus area`;
-              setNotifications(prev => {
-                // Only add if this exact message isn't already present
-                if (!prev.includes(message)) {
-                  return [message, ...prev.slice(0, 4)];
-                }
-                return prev;
-              });
-              toast({
-                title: "Van Update", 
-                description: message,
-                className: "bg-success text-success-foreground"
-              });
+              createNotification(
+                'trip_end',
+                'Van Reached School',
+                `${vanData.van_number} has entered school campus`,
+                { location: 'school_campus' }
+              );
               setETA("At school");
             }
           }
@@ -259,9 +395,8 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
           else {
             if (vanStatus !== "en_route") {
               setVanStatus("en_route");
+              setProximityAlertSent(false); // Reset proximity alert for next trip
             }
-            // Calculate ETA based on distance (assuming 30 km/h average speed)
-            const etaMinutes = Math.max(1, Math.floor(minDistanceToPickup * 2));
             setETA(`${etaMinutes} mins`);
           }
         }
@@ -274,7 +409,71 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
     trackVanStatus();
     const interval = setInterval(trackVanStatus, 30000);
     return () => clearInterval(interval);
-  }, [vanData, studentData, vanStatus, t]);
+  }, [vanData, studentData, vanStatus, t, createNotification, proximityAlertSent]);
+
+  // Helper function to get notification icon
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'proximity_alert': return <Clock className="h-4 w-4 text-yellow-500" />;
+      case 'pickup_notification': return <UserCheck className="h-4 w-4 text-green-500" />;
+      case 'drop_notification': return <Home className="h-4 w-4 text-blue-500" />;
+      case 'trip_start': return <Bus className="h-4 w-4 text-primary" />;
+      case 'trip_end': return <MapPin className="h-4 w-4 text-success" />;
+      case 'emergency': return <AlertCircle className="h-4 w-4 text-red-500" />;
+      case 'delay': return <AlertTriangle className="h-4 w-4 text-orange-500" />;
+      default: return <BellRing className="h-4 w-4 text-primary" />;
+    }
+  };
+
+  // Helper function to get notification color
+  const getNotificationColor = (type: string) => {
+    switch (type) {
+      case 'proximity_alert': return 'bg-yellow-50 border-yellow-200';
+      case 'pickup_notification': return 'bg-green-50 border-green-200';
+      case 'drop_notification': return 'bg-blue-50 border-blue-200';
+      case 'trip_start': return 'bg-primary/5 border-primary/20';
+      case 'trip_end': return 'bg-success/5 border-success/20';
+      case 'emergency': return 'bg-red-50 border-red-200';
+      case 'delay': return 'bg-orange-50 border-orange-200';
+      default: return 'bg-accent border-accent';
+    }
+  };
+
+  const getNotificationToastClass = (type: string) => {
+    switch (type) {
+      case 'emergency': return 'bg-destructive text-destructive-foreground';
+      case 'delay': return 'bg-orange-500 text-white';
+      case 'pickup_notification':
+      case 'drop_notification': return 'bg-success text-success-foreground';
+      default: return 'bg-primary text-primary-foreground';
+    }
+  };
+
+  // Mark notification as read
+  const markAsRead = async (notificationId: string) => {
+    await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('id', notificationId);
+
+    setNotifications(prev => 
+      prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+    );
+  };
+
+  // Format timestamp
+  const formatTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(minutes / 60);
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    return date.toLocaleDateString();
+  };
 
   const getStatusColor = () => {
     switch (vanStatus) {
@@ -407,22 +606,54 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
             <CardTitle className="flex items-center gap-2 text-base">
               <Bell className="h-5 w-5" />
               {t.notifications}
+              {notifications.filter(n => !n.read).length > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  {notifications.filter(n => !n.read).length}
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {notifications.length > 0 ? (
-              <div className="space-y-2">
-                {notifications.map((notification, index) => (
-                  <div key={index} className="flex items-start gap-3 p-3 bg-accent rounded-lg">
-                    <BellRing className="h-4 w-4 text-primary mt-0.5" />
-                    <p className="text-sm">{notification}</p>
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                {notifications.map((notification) => (
+                  <div 
+                    key={notification.id} 
+                    className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                      getNotificationColor(notification.type)
+                    } ${notification.read ? 'opacity-60' : 'shadow-sm'}`}
+                    onClick={() => !notification.read && markAsRead(notification.id)}
+                  >
+                    <div className="mt-0.5">
+                      {getNotificationIcon(notification.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-semibold">{notification.title}</p>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {formatTime(notification.created_at)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {notification.message}
+                      </p>
+                      {!notification.read && (
+                        <Badge variant="secondary" className="mt-2 text-xs">New</Badge>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                {t.noNotifications}
-              </p>
+              <div className="text-center py-8 space-y-2">
+                <Bell className="h-12 w-12 text-muted-foreground/30 mx-auto" />
+                <p className="text-sm text-muted-foreground">
+                  {t.noNotifications}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  You'll receive alerts for van location, pickup/drop updates, and safety notifications
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
