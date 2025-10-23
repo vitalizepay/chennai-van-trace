@@ -472,22 +472,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return false;
       }
 
-      // If user has permanent password, don't prompt for change
+      // If user has permanent password (user-initiated change), don't prompt for change
       if (hasPermanentPassword) {
         setNeedsPasswordChange(false);
         return false;
       }
 
-      // Check for recent password reset activity that requires change
-      const { data: recentReset } = await supabase
+      // If user doesn't have permanent password, check if password was set by admin
+      // This ensures ANY admin-set password (regardless of age) requires user to change it
+      const { data: adminPasswordSet } = await supabase
         .from('user_activity_logs')
         .select('id')
         .eq('user_id', user.id)
-        .in('action', ['password_reset_by_admin', 'password_set_by_admin'])
-        .gte('created_at', new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
+        .in('action', ['password_reset_by_admin', 'password_set_by_admin', 'admin_created', 'admin_role_assigned'])
+        .order('created_at', { ascending: false })
         .limit(1);
 
-      const needsChange = recentReset && recentReset.length > 0;
+      // If admin has set/reset password and user hasn't changed it yet, force change
+      const needsChange = !hasPermanentPassword && adminPasswordSet && adminPasswordSet.length > 0;
       setNeedsPasswordChange(needsChange);
       return needsChange;
     } catch (error) {
