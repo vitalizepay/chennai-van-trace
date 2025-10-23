@@ -458,42 +458,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        console.log('[checkTempPassword] No user found');
         setNeedsPasswordChange(false);
         return false;
       }
 
-      // Use the new database function for reliable temp password checking
-      const { data: hasPermanentPassword, error } = await supabase
-        .rpc('user_has_permanent_password', { _user_id: user.id });
+      console.log('[checkTempPassword] Checking for user:', user.id);
 
-      if (error) {
-        console.error('Error checking permanent password:', error);
-        setNeedsPasswordChange(false);
-        return false;
-      }
-
-      // If user has permanent password (user-initiated change), don't prompt for change
-      if (hasPermanentPassword) {
-        setNeedsPasswordChange(false);
-        return false;
-      }
-
-      // If user doesn't have permanent password, check if password was set by admin
-      // This ensures ANY admin-set password (regardless of age) requires user to change it
-      const { data: adminPasswordSet } = await supabase
+      // First check if user has changed their password themselves
+      const { data: userChangedPassword } = await supabase
         .from('user_activity_logs')
-        .select('id')
+        .select('id, created_at')
         .eq('user_id', user.id)
-        .in('action', ['password_reset_by_admin', 'password_set_by_admin', 'admin_created', 'admin_role_assigned'])
+        .eq('action', 'password_changed')
         .order('created_at', { ascending: false })
         .limit(1);
 
+      console.log('[checkTempPassword] User-initiated password change:', userChangedPassword);
+
+      // If user has changed password themselves, no need to force change
+      if (userChangedPassword && userChangedPassword.length > 0) {
+        console.log('[checkTempPassword] User has changed password, no force needed');
+        setNeedsPasswordChange(false);
+        return false;
+      }
+
+      // Check if password was set by admin
+      const { data: adminPasswordSet } = await supabase
+        .from('user_activity_logs')
+        .select('id, action, created_at')
+        .eq('user_id', user.id)
+        .in('action', ['password_reset_by_admin', 'password_set_by_admin'])
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      console.log('[checkTempPassword] Admin password actions:', adminPasswordSet);
+
       // If admin has set/reset password and user hasn't changed it yet, force change
-      const needsChange = !hasPermanentPassword && adminPasswordSet && adminPasswordSet.length > 0;
+      const needsChange = adminPasswordSet && adminPasswordSet.length > 0;
+      console.log('[checkTempPassword] Needs password change:', needsChange);
+      
       setNeedsPasswordChange(needsChange);
       return needsChange;
     } catch (error) {
-      console.error('Error checking temp password:', error);
+      console.error('[checkTempPassword] Error:', error);
       setNeedsPasswordChange(false);
       return false;
     }
