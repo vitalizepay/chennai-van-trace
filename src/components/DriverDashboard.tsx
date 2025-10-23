@@ -30,6 +30,8 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
   const [vanId, setVanId] = useState<string | null>(null);
   const [vanData, setVanData] = useState<any>(null);
   const [students, setStudents] = useState<Student[]>([]);
+  const [gpsStatus, setGpsStatus] = useState<'active' | 'unavailable' | 'permission-denied'>('active');
+  const [lastLocationUpdate, setLastLocationUpdate] = useState<Date | null>(null);
 
   const texts = {
     en: {
@@ -121,7 +123,7 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
     fetchDriverData();
   }, [user?.id]);
 
-  // Location tracking when trip is active
+  // Location tracking with watchPosition for continuous GPS
   useEffect(() => {
     console.log('Location tracking effect triggered:', { tripActive, vanId });
     
@@ -130,30 +132,38 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
       return;
     }
 
-    const updateLocation = async () => {
-      console.log('Attempting to get location for mobile GPS...');
+    if (!navigator.geolocation) {
+      console.error('Geolocation is not supported by this browser');
+      setGpsStatus('unavailable');
+      toast({
+        title: "GPS Not Available",
+        description: "Your device doesn't support GPS tracking. Please use a mobile device.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    let watchId: number;
+
+    const startWatching = () => {
+      console.log('🚐 Starting continuous GPS tracking for van:', vanId);
       
-      if (!navigator.geolocation) {
-        console.error('Geolocation is not supported by this browser');
-        toast({
-          title: "GPS Not Available",
-          description: "Your device doesn't support GPS tracking",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      navigator.geolocation.getCurrentPosition(
+      watchId = navigator.geolocation.watchPosition(
         async (position) => {
           const { latitude, longitude, accuracy } = position.coords;
+          const now = new Date();
+          
           console.log('📍 Location obtained:', { 
             latitude, 
             longitude, 
-            accuracy,
-            timestamp: new Date().toISOString(),
+            accuracy: Math.round(accuracy) + 'm',
+            timestamp: now.toISOString(),
             isMobile: /Mobi|Android/i.test(navigator.userAgent),
             tripActive
           });
+          
+          setGpsStatus('active');
+          setLastLocationUpdate(now);
           
           try {
             const { error } = await supabase
@@ -161,8 +171,8 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
               .update({
                 current_lat: latitude,
                 current_lng: longitude,
-                last_location_update: new Date().toISOString(),
-                status: tripActive ? 'active' : 'active' // Keep as active but track trip status
+                last_location_update: now.toISOString(),
+                status: 'active'
               })
               .eq('id', vanId);
               
@@ -170,11 +180,16 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
               console.error('❌ Database update error:', error);
               toast({
                 title: "Location Update Failed",
-                description: "Could not update van location",
+                description: "Could not update van location in database",
                 variant: "destructive"
               });
             } else {
-              console.log('✅ Location updated for van:', vanId, 'at', latitude, longitude, 'Trip active:', tripActive);
+              console.log('✅ Location updated successfully:', {
+                vanId,
+                lat: latitude.toFixed(6),
+                lng: longitude.toFixed(6),
+                accuracy: Math.round(accuracy) + 'm'
+              });
             }
           } catch (dbError) {
             console.error('❌ Database operation failed:', dbError);
@@ -193,37 +208,38 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
           });
           
           if (error.code === 1) {
+            setGpsStatus('permission-denied');
             toast({
-              title: "Location Permission Required",
-              description: "Please enable location access for accurate tracking",
+              title: "Location Permission Denied",
+              description: "Please enable location access in your browser settings to track the van",
+              variant: "destructive"
+            });
+          } else if (error.code === 2) {
+            setGpsStatus('unavailable');
+            toast({
+              title: "GPS Signal Lost",
+              description: "Unable to determine location. Please check if GPS is enabled on your device.",
               variant: "destructive"
             });
           }
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 5000
+          timeout: 15000,
+          maximumAge: 0 // Always get fresh position
         }
       );
     };
 
-    // Track location continuously when driver is logged in, but more frequent when trip is active
-    console.log('🚐 Starting location tracking for van:', vanId, 'Trip active:', tripActive);
-    updateLocation();
-
-    // Update every 3 seconds when trip is active, every 10 seconds when inactive
-    const updateInterval = tripActive ? 3000 : 10000;
-    const locationInterval = setInterval(() => {
-      console.log('🔄 Periodic location update triggered, trip active:', tripActive);
-      updateLocation();
-    }, updateInterval);
+    startWatching();
 
     return () => {
-      console.log('🛑 Stopping location tracking');
-      clearInterval(locationInterval);
+      console.log('🛑 Stopping continuous GPS tracking');
+      if (watchId !== undefined) {
+        navigator.geolocation.clearWatch(watchId);
+      }
     };
-  }, [vanId, tripActive]); // Track both vanId and tripActive
+  }, [vanId, tripActive]);
 
   const handleTripToggle = () => {
     setTripActive(!tripActive);
@@ -409,35 +425,56 @@ const DriverDashboard = ({ language, onBack }: DriverDashboardProps) => {
           </CardContent>
         </Card>
 
-        {/* Trip Summary */}
-        {tripActive && (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center space-y-2">
-                <div className="h-3 w-3 bg-success rounded-full mx-auto animate-pulse"></div>
-                <p className="text-sm font-medium text-success">🚐 Trip Active - GPS Tracking</p>
-                <p className="text-xs text-muted-foreground">
-                  Updating location every 3 seconds • Parents can see live location
-                </p>
+        {/* GPS Status */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">GPS Status</span>
+                {gpsStatus === 'active' ? (
+                  <Badge className="bg-success text-success-foreground">
+                    <div className="flex items-center gap-1">
+                      <div className="h-2 w-2 bg-success-foreground rounded-full animate-pulse"></div>
+                      Active
+                    </div>
+                  </Badge>
+                ) : gpsStatus === 'permission-denied' ? (
+                  <Badge variant="destructive">Permission Denied</Badge>
+                ) : (
+                  <Badge variant="outline" className="text-muted-foreground">
+                    Unavailable
+                  </Badge>
+                )}
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Passive Tracking Info */}
-        {!tripActive && vanData && (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center space-y-2">
-                <div className="h-3 w-3 bg-muted rounded-full mx-auto"></div>
-                <p className="text-sm font-medium text-muted-foreground">📍 Background Tracking</p>
+              
+              {lastLocationUpdate && (
                 <p className="text-xs text-muted-foreground">
-                  Location updated every 10 seconds • Start trip for real-time tracking
+                  Last updated: {lastLocationUpdate.toLocaleTimeString()}
                 </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              )}
+              
+              {tripActive && gpsStatus === 'active' && (
+                <div className="bg-success/10 border border-success/20 rounded-lg p-3">
+                  <p className="text-xs font-medium text-success">🚐 Real-Time Tracking Active</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Parents can see your live location on the map
+                  </p>
+                </div>
+              )}
+              
+              {gpsStatus !== 'active' && (
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 space-y-2">
+                  <p className="text-xs font-medium text-destructive">⚠️ GPS Not Working</p>
+                  <p className="text-xs text-muted-foreground">
+                    {gpsStatus === 'permission-denied' 
+                      ? 'Please enable location permissions in your browser settings'
+                      : 'Please use a mobile device with GPS, ensure location services are enabled, and that your browser has HTTPS access'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Change Password Section */}
         <Card>
