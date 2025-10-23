@@ -373,8 +373,8 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
           
           console.log(`Calculated ETA: ${etaMinutes} minutes for ${minDistanceToPickup.toFixed(2)}km`);
           
-          // Proximity alert (within 2km and 10 minutes)
-          if (minDistanceToPickup < 2 && etaMinutes <= 10 && !proximityAlertSent && vanStatus === "en_route") {
+          // Proximity alert - only if within 5km and less than 15 minutes away
+          if (minDistanceToPickup <= 5 && minDistanceToPickup > 0.2 && etaMinutes <= 15 && !proximityAlertSent && vanStatus === "en_route") {
             setProximityAlertSent(true);
             const fullAddress = nearestStudent?.pickupStop || 'pickup point';
             createNotification(
@@ -391,7 +391,7 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
           }
 
           // At pickup point (within 200 meters)
-          if (minDistanceToPickup < 0.2) {
+          if (minDistanceToPickup < 0.2 && minDistanceToPickup > 0) {
             if (vanStatus !== "approaching") {
               setVanStatus("approaching");
               const fullAddress = nearestStudent?.pickupStop || 'pickup point';
@@ -407,8 +407,8 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
             }
             setETA("At pickup point");
           } 
-          // Near school (within 1km)
-          else if (distanceToSchool < 1.0 && distanceToSchool > 0.2) {
+          // Near school (within 2km and more than 200m)
+          else if (distanceToSchool < 2.0 && distanceToSchool > 0.2 && minDistanceToPickup > 2.0) {
             if (vanStatus !== "arrived") {
               const schoolAddress = parentDetails?.address || 'school';
               const schoolETA = Math.round((distanceToSchool / averageSpeedKmh) * 60);
@@ -427,7 +427,7 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
             setETA(`${Math.round((distanceToSchool / averageSpeedKmh) * 60)} mins to school`);
           }
           // At school (within 200 meters)
-          else if (distanceToSchool < 0.2) {
+          else if (distanceToSchool < 0.2 && distanceToSchool > 0) {
             if (vanStatus !== "arrived") {
               const schoolAddress = parentDetails?.address || 'school';
               createNotification(
@@ -443,13 +443,21 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
             }
             setETA("At school");
           } 
-          // En route
+          // En route - show distance-based ETA
           else {
             if (vanStatus !== "en_route") {
               setVanStatus("en_route");
               setProximityAlertSent(false);
             }
-            setETA(`${etaMinutes} mins`);
+            
+            // Show realistic ETA or distance
+            if (minDistanceToPickup > 10) {
+              setETA(`${minDistanceToPickup.toFixed(0)}km away`);
+            } else if (etaMinutes > 60) {
+              setETA(`${Math.round(etaMinutes / 60)}h ${etaMinutes % 60}m`);
+            } else {
+              setETA(`${etaMinutes} mins`);
+            }
           }
         }
       } catch (error) {
