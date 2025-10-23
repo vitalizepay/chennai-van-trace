@@ -369,39 +369,78 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
           const averageSpeedKmh = 30;
           const etaMinutes = Math.max(1, Math.round((minDistanceToPickup / averageSpeedKmh) * 60));
           
-          if (etaMinutes <= 10 && !proximityAlertSent && vanStatus === "en_route") {
+          // Proximity alert (within 2km and 10 minutes)
+          if (minDistanceToPickup < 2 && etaMinutes <= 10 && !proximityAlertSent && vanStatus === "en_route") {
             setProximityAlertSent(true);
+            const fullAddress = nearestStudent?.pickupStop || 'pickup point';
             createNotification(
               'proximity_alert',
-              'Van Approaching',
-              `${vanData.van_number} will arrive at pickup point in approximately ${etaMinutes} minutes`,
-              { eta: etaMinutes, pickup_stop: nearestStudent?.pickupStop }
+              '🚐 Van Approaching Your Area',
+              `${vanData.van_number} is ${minDistanceToPickup.toFixed(1)}km away from ${fullAddress}. Expected arrival in ${etaMinutes} minutes.`,
+              { 
+                eta: etaMinutes, 
+                pickup_stop: fullAddress,
+                distance_km: minDistanceToPickup.toFixed(1),
+                van_location: vanLocation
+              }
             );
           }
 
-          if (minDistanceToPickup < 0.5) {
+          // At pickup point (within 200 meters)
+          if (minDistanceToPickup < 0.2) {
             if (vanStatus !== "approaching") {
               setVanStatus("approaching");
+              const fullAddress = nearestStudent?.pickupStop || 'pickup point';
               createNotification(
-                'trip_start',
-                'Van at Pickup Point',
-                `${vanData.van_number} has reached ${nearestStudent?.pickupStop || 'pickup point'}`,
-                { pickup_stop: nearestStudent?.pickupStop }
+                'arrival_pickup',
+                '✅ Van Arrived at Pickup',
+                `${vanData.van_number} has arrived at ${fullAddress}. Please send your child out.`,
+                { 
+                  pickup_stop: fullAddress,
+                  arrival_time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                }
               );
             }
             setETA("At pickup point");
-          } else if (distanceToSchool < 2.0) {
+          } 
+          // Near school (within 1km)
+          else if (distanceToSchool < 1.0 && distanceToSchool > 0.2) {
             if (vanStatus !== "arrived") {
-              setVanStatus("arrived");
+              const schoolAddress = parentDetails?.address || 'school';
+              const schoolETA = Math.round((distanceToSchool / averageSpeedKmh) * 60);
               createNotification(
-                'trip_end',
-                'Van Reached School',
-                `${vanData.van_number} has entered school campus`,
-                { location: 'school_campus' }
+                'approaching_school',
+                '🏫 Approaching School',
+                `${vanData.van_number} is ${distanceToSchool.toFixed(1)}km from ${schoolAddress}. Drop-off in approximately ${schoolETA} minutes.`,
+                { 
+                  location: schoolAddress,
+                  distance_km: distanceToSchool.toFixed(1),
+                  eta: schoolETA
+                }
               );
-              setETA("At school");
+              setVanStatus("arrived");
             }
-          } else {
+            setETA(`${Math.round((distanceToSchool / averageSpeedKmh) * 60)} mins to school`);
+          }
+          // At school (within 200 meters)
+          else if (distanceToSchool < 0.2) {
+            if (vanStatus !== "arrived") {
+              const schoolAddress = parentDetails?.address || 'school';
+              createNotification(
+                'arrival_school',
+                '🎓 Arrived at School',
+                `${vanData.van_number} has reached ${schoolAddress}. Your child will be dropped off shortly.`,
+                { 
+                  location: schoolAddress,
+                  arrival_time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                }
+              );
+              setVanStatus("arrived");
+            }
+            setETA("At school");
+          } 
+          // En route
+          else {
             if (vanStatus !== "en_route") {
               setVanStatus("en_route");
               setProximityAlertSent(false);
