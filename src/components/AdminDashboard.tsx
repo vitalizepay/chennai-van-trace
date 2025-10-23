@@ -3,12 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog, LogOut, Shield, TrendingUp, Clock, MapPin as LocationIcon, Plus } from "lucide-react";
+import { ArrowLeft, Bus, Users, MapPin, Settings, Bell, BarChart3, AlertTriangle, UserCog, LogOut, Shield, TrendingUp, Clock, MapPin as LocationIcon, Plus, UserCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import EnhancedGoogleMap from "./EnhancedGoogleMap";
 import ComprehensiveUserManager from "./ComprehensiveUserManager";
+import StudentParentManager from "./StudentParentManager";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -506,7 +507,7 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
 
       <div className="p-4">
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview" className="gap-2">
               <BarChart3 className="h-4 w-4" />
               {t.overview}
@@ -514,6 +515,10 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
             <TabsTrigger value="vans" className="gap-2">
               <Bus className="h-4 w-4" />
               Vans
+            </TabsTrigger>
+            <TabsTrigger value="students" className="gap-2">
+              <UserCircle className="h-4 w-4" />
+              Students
             </TabsTrigger>
             <TabsTrigger value="users" className="gap-2">
               <UserCog className="h-4 w-4" />
@@ -800,6 +805,10 @@ const AdminDashboard = ({ language, onBack }: AdminDashboardProps) => {
                 </div>
               </DialogContent>
             </Dialog>
+          </TabsContent>
+
+          <TabsContent value="students" className="space-y-4">
+            <StudentParentManager />
           </TabsContent>
 
           <TabsContent value="users" className="space-y-4">
