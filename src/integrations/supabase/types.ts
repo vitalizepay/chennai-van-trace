@@ -287,6 +287,8 @@ export type Database = {
           id: string
           medical_info: string | null
           parent_id: string | null
+          pickup_lat: number | null
+          pickup_lng: number | null
           pickup_stop: string
           pickup_time: string | null
           school_id: string
@@ -305,6 +307,8 @@ export type Database = {
           id?: string
           medical_info?: string | null
           parent_id?: string | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
           pickup_stop: string
           pickup_time?: string | null
           school_id: string
@@ -323,6 +327,8 @@ export type Database = {
           id?: string
           medical_info?: string | null
           parent_id?: string | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
           pickup_stop?: string
           pickup_time?: string | null
           school_id?: string

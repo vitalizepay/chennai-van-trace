@@ -261,6 +261,27 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
     };
   }, [studentData, createNotification]);
 
+  // Geocode address helper
+  const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
+    try {
+      const response = await supabase.functions.invoke('get-google-maps-key');
+      const { apiKey } = response.data;
+      
+      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
+      const geocodeResponse = await fetch(geocodeUrl);
+      const geocodeData = await geocodeResponse.json();
+      
+      if (geocodeData.results && geocodeData.results.length > 0) {
+        const location = geocodeData.results[0].geometry.location;
+        return { lat: location.lat, lng: location.lng };
+      }
+      return null;
+    } catch (error) {
+      console.error('Error geocoding address:', error);
+      return null;
+    }
+  };
+
   // Real-time van status tracking
   useEffect(() => {
     if (!vanData || !studentData.length) return;
@@ -275,14 +296,44 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
 
         if (error || !vanUpdates) return;
 
-        const studentPickupPoints = studentData.map(student => ({
-          name: student.full_name,
-          pickupStop: student.pickup_stop,
-          lat: student.pickup_stop.toLowerCase().includes('tirumangalam') ? 9.8142 : 9.8100,
-          lng: student.pickup_stop.toLowerCase().includes('tirumangalam') ? 77.9892 : 77.9800
-        }));
+        // Build pickup points with geocoded coordinates
+        const studentPickupPoints = await Promise.all(
+          studentData.map(async (student) => {
+            let lat = student.pickup_lat;
+            let lng = student.pickup_lng;
+            
+            // If coordinates not stored, geocode the address
+            if (!lat || !lng) {
+              const coords = await geocodeAddress(student.pickup_stop + ', Coimbatore');
+              if (coords) {
+                lat = coords.lat;
+                lng = coords.lng;
+                
+                // Update student record with coordinates
+                await supabase
+                  .from('students')
+                  .update({ pickup_lat: lat, pickup_lng: lng })
+                  .eq('id', student.id);
+              }
+            }
+            
+            return {
+              name: student.full_name,
+              pickupStop: student.pickup_stop,
+              lat: lat || 11.0168,
+              lng: lng || 76.9558
+            };
+          })
+        );
 
-        const schoolLocation = { lat: 9.7800, lng: 77.9500 };
+        // Geocode parent address for school location if available
+        let schoolLocation = { lat: 11.0168, lng: 76.9558 }; // Default Coimbatore
+        if (parentDetails?.address) {
+          const schoolCoords = await geocodeAddress(parentDetails.address);
+          if (schoolCoords) {
+            schoolLocation = schoolCoords;
+          }
+        }
 
         if (vanUpdates.current_lat && vanUpdates.current_lng) {
           const vanLocation = { 
@@ -313,7 +364,10 @@ const ParentDashboard = ({ language, onBack }: ParentDashboardProps) => {
           }
           
           const distanceToSchool = calculateDistance(vanLocation.lat, vanLocation.lng, schoolLocation.lat, schoolLocation.lng);
-          const etaMinutes = Math.max(1, Math.floor(minDistanceToPickup * 2));
+          
+          // Calculate more accurate ETA based on distance and average speed (30 km/h in city traffic)
+          const averageSpeedKmh = 30;
+          const etaMinutes = Math.max(1, Math.round((minDistanceToPickup / averageSpeedKmh) * 60));
           
           if (etaMinutes <= 10 && !proximityAlertSent && vanStatus === "en_route") {
             setProximityAlertSent(true);
